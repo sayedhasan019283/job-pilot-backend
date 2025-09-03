@@ -42,10 +42,19 @@ const deleteAppliedJobFromDB = async (appliedJobId : string) => {
     return result
 } 
 
+const filterByStatusFromDB = async (status: string) => {
+    const result = await JobModel.find({ status: status });
+    if (result.length === 0) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "Didn't find any data!");
+    }
+    return result;
+};
+
 export const jobService = {
     createAppliedIntoDB,
     readAllJobAppliedIntoDB,
     readSingleJobAppliedIntoDB,
     updateJobAppliedIntoDB,
-    deleteAppliedJobFromDB
+    deleteAppliedJobFromDB,
+    filterByStatusFromDB
 }

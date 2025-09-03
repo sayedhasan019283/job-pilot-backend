@@ -1,7 +1,6 @@
 import express from 'express';
 import { AuthRoutes } from '../app/modules/Auth/auth.route';
 import { UserRoutes } from '../app/modules/user/user.route';
-import path from 'path';
 import { JobRouter } from '../app/modules/job/job.route';
 const router = express.Router();
 

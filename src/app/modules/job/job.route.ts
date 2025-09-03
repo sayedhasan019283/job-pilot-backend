@@ -34,4 +34,10 @@ router.delete(
     jobController.deleteAppliedJob
 ) 
 
+router.get(
+    '/filter-by-status', // status
+    auth('admin'),
+    jobController.filterByStatus // This calls the filterByStatus controller
+);
+
 export const JobRouter = router

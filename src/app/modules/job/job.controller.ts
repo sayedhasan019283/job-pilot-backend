@@ -3,6 +3,7 @@ import catchAsync from "../../../shared/catchAsync";
 import { jobService } from "./job.service";
 import sendResponse from "../../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
+import ApiError from "../../../errors/ApiError";
 
 const createAppliedJob = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
     const payload = req.body;
@@ -55,10 +56,24 @@ const deleteAppliedJob = catchAsync(async (req : Request , res : Response , next
     })
 })
 
+
+const filterByStatus = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const { status } = req.query;
+
+    // Check if status is provided
+    if (!status) {
+        return next(new ApiError(StatusCodes.BAD_REQUEST, "Status query parameter is required"));
+    }
+
+    const result = await jobService.filterByStatusFromDB(status as string); // Type assertion for status
+    res.status(StatusCodes.OK).json({ success: true, data: result });
+});
+
 export const jobController = {
     createAppliedJob,
     readAllJobApplied,
     readSingleJobApplied,
     updateJobApplied,
-    deleteAppliedJob
+    deleteAppliedJob,
+    filterByStatus
 }
