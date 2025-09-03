@@ -14,7 +14,7 @@ router.post(
     jobController.createAppliedJob
 )
 router.get(
-    '/get-all',
+    '/get-all', // status as query
     auth('admin'),
     jobController.readAllJobApplied
 )  
@@ -34,10 +34,10 @@ router.delete(
     jobController.deleteAppliedJob
 ) 
 
-router.get(
-    '/filter-by-status', // status
-    auth('admin'),
-    jobController.filterByStatus // This calls the filterByStatus controller
-);
+// router.get(
+//     '/filter-by-status', // status
+//     auth('admin'),
+//     jobController.filterByStatus // This calls the filterByStatus controller
+// );
 
 export const JobRouter = router

@@ -13,7 +13,7 @@ const createAppliedIntoDB = async (payload : TJob) => {
 
 const readAllJobAppliedIntoDB = async () => {
     const result =  await JobModel.find({})
-    if (!result) {
+    if (!result || result.length === 0) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!")
     }
     return result
@@ -44,7 +44,7 @@ const deleteAppliedJobFromDB = async (appliedJobId : string) => {
 
 const filterByStatusFromDB = async (status: string) => {
     const result = await JobModel.find({ status: status });
-    if (result.length === 0) {
+    if ( !result || result.length === 0) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "Didn't find any data!");
     }
     return result;
