@@ -1,92 +1,50 @@
+import { USER_ROLE } from './../modules/user/user.constant';
 import { NextFunction, Request, Response } from 'express';
-import { StatusCodes } from 'http-status-codes';
-import { Secret, TokenExpiredError } from 'jsonwebtoken';
+import httpStatus from 'http-status';
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import catchAsync from '../../shared/catchAsync';
+import AppError from '../../errors/AppError';
 import config from '../../config';
-import ApiError from '../../errors/ApiError';
-import { jwtHelper } from '../../helpers/jwtHelper';
-import { roleRights } from './roles';
 import { User } from '../modules/user/user.model';
 
-const auth =
-  (...roles: string[]) =>
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        // Step 1: Get Authorization Header
-        console.log(req.headers.authorization)
-        const tokenWithBearer = req.headers.authorization;
-        console.log(tokenWithBearer)
-        if (!tokenWithBearer) {
-          throw new ApiError(StatusCodes.UNAUTHORIZED, 'You are not authorized');
-        }
+const auth = (...requiredRoles: (keyof typeof USER_ROLE)[]) => {
+  return catchAsync(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const rawToken = req.headers.authorization;
+    const token = rawToken?.split(' ')[1];
 
-        if (tokenWithBearer.startsWith('Bearer')) {
-          const token = tokenWithBearer.split(' ')[1];
-          try {
-            // Step 2: Verify Token
-            const verifyUser = jwtHelper.verifyToken(
-              token,
-              config.jwt.accessSecret as Secret
-            );
-            // console.log("verify user ---->>>> ", verifyUser)
-            // Step 3: Attach user to the request object
-            req.user = verifyUser;
-            
-            // Step 4: Check if the user exists and is active
-            const user = await User.findById(verifyUser.id);
-            // console.log("user ---->>>> ", user)
-            if (!user) {
-              throw new ApiError(StatusCodes.BAD_REQUEST, 'User not found.');
-            } else if (user.isDeleted) {
-              throw new ApiError(
-                StatusCodes.BAD_REQUEST,
-                'Your account has been deleted.'
-              );
-            } else if (user.isBlocked) {
-              throw new ApiError(
-                StatusCodes.BAD_REQUEST,
-                'Your account is blocked.'
-              );
-            } 
-            console.log("user ---->>>> step 5 ", user)
-            // Step 5: Role-based Authorization
-            console.log("roles------->>>>",roles)
-            if (roles.length) {
-              console.log("------------->>>>>>>",user)
-              const userRole = roleRights.get(user?.role);
-              console.log(userRole)
-              const hasRole = userRole?.some(role => roles.includes(role));
-              console.log(hasRole)
-              if (!hasRole) {
-                throw new ApiError(
-                  StatusCodes.FORBIDDEN,
-                  "You don't have permission to access this API"
-                );
-              }
-            }
+    // Check if the token is missing
+    if (!token) {
+      throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
+    }
 
-            next();
-          } catch (err) {
-            // Handle Token Errors
-            if (err instanceof TokenExpiredError) {
-              throw new ApiError(
-                StatusCodes.UNAUTHORIZED,
-                'Your session has expired. Please log in again.'
-              );
-            }
-            // } else {
-            //   throw new ApiError(
-            //     StatusCodes.UNAUTHORIZED,
-            //     'Invalid token. Please log in again.'
-            //   );
-            // }
-          }
-        } else {
-          // If the token format is incorrect
-          throw new ApiError(StatusCodes.UNAUTHORIZED, 'Invalid token format');
-        }
-      } catch (error) {
-        next(error); // Pass error to next middleware (usually the error handler)
-      }
-    };
+    // Verify if the given token is valid
+    const decoded = jwt.verify(
+      token,
+      config.jwt.accessSecret as string,
+    ) as JwtPayload;
+
+    const { role, userId } = decoded;
+    console.log("User Id", userId);
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
+    }
+
+    // Check if the role is not allowed
+    if (requiredRoles && !requiredRoles.includes(role)) {
+      res.status(401).send({
+        "success": false,
+        "statusCode": 401,
+        "message": "You have no access to this route",
+      });
+      return; // Ensure we stop further execution after sending the response
+    }
+
+    // Attach user to the request object
+    req.user = decoded as JwtPayload;
+    next();  // Proceed to the next middleware
+  });
+};
 
 export default auth;
