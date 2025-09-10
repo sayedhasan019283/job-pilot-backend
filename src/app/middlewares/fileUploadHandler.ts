@@ -59,7 +59,7 @@ export default function fileUploadHandler(UPLOADS_FOLDER: string) {
   return multer({
     storage,
     limits: {
-      fileSize: 20 * 1024 * 1024, // 20MB limit
+      fileSize: 5 * 1024 * 1024 * 1024, // 20MB limit
     },
     fileFilter,
   });
