@@ -32,7 +32,18 @@ const readAllCreateLibraryItem = async (req : Request, res : Response, next : Ne
     })
 }
 
+const deleteLibraryItem = catchAsync(async (req : Request, res : Response, next : NextFunction) => {
+       const {id} = req.params
+       const result = await libraryService.deleteLibraryItem(id);
+       sendResponse(res, {
+        code : 200,
+        message : "Library Items Delete successfully.",
+        data : result
+    })
+})
+
 export const libraryController = {
     createLibraryItem,
-    readAllCreateLibraryItem
+    readAllCreateLibraryItem,
+    deleteLibraryItem
 }

@@ -30,5 +30,9 @@ router.get(
     '/get-all',
     libraryController.readAllCreateLibraryItem
 )
+router.delete(
+    '/delete/:id',
+    libraryController.deleteLibraryItem
+)
 
 export const LibraryRoute = router;

@@ -19,7 +19,16 @@ const readAllCreateLibraryItem = async () => {
     return result
 }
 
+const deleteLibraryItem = async (id : string) => {
+    const result = await LibraryModel.findByIdAndDelete(id);
+    if (!result) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "This item is not deleted!")
+    }
+    return result
+} 
+
 export const libraryService = {
     createLibraryItem,
-    readAllCreateLibraryItem
+    readAllCreateLibraryItem,
+    deleteLibraryItem
 }
