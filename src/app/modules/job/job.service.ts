@@ -2,6 +2,8 @@ import { StatusCodes } from "http-status-codes";
 import ApiError from "../../../errors/ApiError";
 import { TJob } from "./job.interface"
 import { JobModel } from "./job.model"
+import { User } from "../user/user.model";
+import { startOfDay, startOfWeek, startOfMonth, subDays, subWeeks, subMonths, endOfDay, endOfWeek, endOfMonth } from 'date-fns';
 
 const createAppliedIntoDB = async (payload : TJob) => {
     const result = await JobModel.create(payload);
@@ -50,11 +52,77 @@ const filterByStatusFromDB = async (status: string) => {
     return result;
 };
 
+const getTimeRange = (period: 'day' | 'week' | 'month', date = new Date()) => {
+  switch (period) {
+    case 'day':
+      return { start: startOfDay(date), end: endOfDay(date) };
+    case 'week':
+      return { start: startOfWeek(date), end: endOfWeek(date) };
+    case 'month':
+      return { start: startOfMonth(date), end: endOfMonth(date) };
+    default:
+      throw new Error('Invalid period');
+  }
+};
+
+const getPreviousTimeRange = (period: 'day' | 'week' | 'month', date = new Date()) => {
+  switch (period) {
+    case 'day':
+      return { start: startOfDay(subDays(date, 1)), end: endOfDay(subDays(date, 1)) };
+    case 'week':
+      return { start: startOfWeek(subWeeks(date, 1)), end: endOfWeek(subWeeks(date, 1)) };
+    case 'month':
+      return { start: startOfMonth(subMonths(date, 1)), end: endOfMonth(subMonths(date, 1)) };
+    default:
+      throw new Error('Invalid period');
+  }
+};
+
+const dashboardDataFromDB = async (period: 'day' | 'week' | 'month') => {
+  const currentRange = getTimeRange(period); // Get current period range
+  const previousRange = getPreviousTimeRange(period); // Get previous period range
+
+  // Get counts for the current period
+  const [userCountCurrent, jobCountCurrent, appliedJobCountCurrent, interviewScheduledJobsCurrent] = await Promise.all([
+    User.countDocuments({ createdAt: { $gte: currentRange.start, $lte: currentRange.end } }),
+    JobModel.countDocuments({ createdAt: { $gte: currentRange.start, $lte: currentRange.end } }),
+    JobModel.countDocuments({ status: "Applied", createdAt: { $gte: currentRange.start, $lte: currentRange.end } }),
+    (await JobModel.find({ status: "Interview", createdAt: { $gte: currentRange.start, $lte: currentRange.end } })).length,
+  ]);
+
+  // Get counts for the previous period
+  const [userCountPrevious, jobCountPrevious, appliedJobCountPrevious, interviewScheduledJobsPrevious] = await Promise.all([
+    User.countDocuments({ createdAt: { $gte: previousRange.start, $lte: previousRange.end } }),
+    JobModel.countDocuments({ createdAt: { $gte: previousRange.start, $lte: previousRange.end } }),
+    JobModel.countDocuments({ status: "Applied", createdAt: { $gte: previousRange.start, $lte: previousRange.end } }),
+    JobModel.find({ status: "Interview", createdAt: { $gte: previousRange.start, $lte: previousRange.end } }),
+  ]);
+
+  // Calculate percentage change
+  const calculatePercentageChange = (current: number, previous: number) => {
+    if (previous === 0) return current === 0 ? 0 : 100;
+    return ((current - previous) / previous) * 100;
+  };
+
+  return {
+    userCountCurrent,
+    jobCountCurrent,
+    appliedJobCountCurrent,
+    interviewScheduledJobsCurrent,
+    userCountPercentageChange: calculatePercentageChange(userCountCurrent, userCountPrevious),
+    jobCountPercentageChange: calculatePercentageChange(jobCountCurrent, jobCountPrevious),
+    appliedJobCountPercentageChange: calculatePercentageChange(appliedJobCountCurrent, appliedJobCountPrevious),
+    interviewScheduledJobsPercentageChange: calculatePercentageChange(interviewScheduledJobsCurrent, interviewScheduledJobsPrevious.length),
+  };
+};
+
+
 export const jobService = {
     createAppliedIntoDB,
     readAllJobAppliedIntoDB,
     readSingleJobAppliedIntoDB,
     updateJobAppliedIntoDB,
     deleteAppliedJobFromDB,
-    filterByStatusFromDB
+    filterByStatusFromDB,
+    dashboardDataFromDB
 }

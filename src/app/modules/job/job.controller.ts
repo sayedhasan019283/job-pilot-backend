@@ -75,10 +75,28 @@ const deleteAppliedJob = catchAsync(async (req : Request , res : Response , next
 //     res.status(StatusCodes.OK).json({ success: true, data: result });
 // });
 
+const  dashboardData = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
+    const {period} = req.params;
+  if (['day', 'week', 'month'].includes(period)) {
+    const result = await jobService.dashboardDataFromDB(period as 'day' | 'week' | 'month');
+    sendResponse(res , {
+        code : StatusCodes.OK,
+        message : "your dashboard data get successfully",
+        data : result
+    })
+  } else {
+    sendResponse(res , {
+        code : StatusCodes.BAD_REQUEST,
+        message : 'Invalid period, must be one of "day", "week", or "month".',
+    })
+  }
+})
+
 export const jobController = {
     createAppliedJob,
     readAllJobApplied,
     readSingleJobApplied,
     updateJobApplied,
-    deleteAppliedJob
+    deleteAppliedJob,
+    dashboardData
 }

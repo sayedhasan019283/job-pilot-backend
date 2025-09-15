@@ -7,7 +7,11 @@ const jobSchema = new Schema<TJob>({
   jobTitle: { type: String, required: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   adminId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, required: true },
+  status: {
+     type: String,
+     enum : ["Applied", "Shortlisted", "Rejected", "Interview"],
+    required: true 
+  },
   appliedDate: { type: Date, required: true },
   jdLink: { type: String, required: true },
 });

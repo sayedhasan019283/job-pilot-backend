@@ -2,7 +2,6 @@ import bcrypt from 'bcrypt';
 import { Schema, model } from 'mongoose';
 import config from '../../../config';
 import { TUser, UserModal } from './user.interface';
-import { roles } from '../../middlewares/roles';
 import paginate from '../../../helpers/paginate';
 
 const userSchema = new Schema<TUser, UserModal>(
@@ -50,7 +49,7 @@ const userSchema = new Schema<TUser, UserModal>(
     },
     role: {
       type: String,
-      enum: Object.values(roles),
+      enum: ["admin", "super_admin", "analyst", "user"],
       default: "user"
     },
     isHumanTrue: {

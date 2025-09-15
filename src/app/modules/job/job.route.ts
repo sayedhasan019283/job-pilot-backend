@@ -10,28 +10,29 @@ const router = express.Router();
 
 router.post(
     '/create',
-    auth(USER_ROLE.user),
+    auth(USER_ROLE.admin),
     validateRequest(jobValidationSchema),
     jobController.createAppliedJob
 )
 router.get(
     '/get-all', // status as query
-    auth('admin'),
+    auth(USER_ROLE.admin),
     jobController.readAllJobApplied
 )  
 router.get(
     '/get-single/:appliedJobId',
+    auth(USER_ROLE.admin),
     auth('admin'),
     jobController.readSingleJobApplied
 ) 
 router.patch(
     '/update/:appliedJobId',
-    auth('admin'),
+    auth(USER_ROLE.admin),
     jobController.updateJobApplied
 )
 router.delete(
     '/delete/:appliedJobId',
-    auth('admin'),
+    auth(USER_ROLE.admin),
     jobController.deleteAppliedJob
 ) 
 
@@ -40,5 +41,10 @@ router.delete(
 //     auth('admin'),
 //     jobController.filterByStatus // This calls the filterByStatus controller
 // );
+
+router.get(
+    '/dashboard-data/:period',
+    jobController.dashboardData
+)
 
 export const JobRouter = router
