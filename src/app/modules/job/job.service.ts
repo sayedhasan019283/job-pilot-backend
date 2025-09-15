@@ -98,6 +98,8 @@ const dashboardDataFromDB = async (period: 'day' | 'week' | 'month') => {
     JobModel.find({ status: "Interview", createdAt: { $gte: previousRange.start, $lte: previousRange.end } }),
   ]);
 
+  console.log("userCountPrevious==>> ", userCountPrevious, "jobCountPrevious==>> ", jobCountPrevious, "appliedJobCountPrevious==>> ", appliedJobCountPrevious, "interviewScheduledJobsPrevious===>> ", interviewScheduledJobsPrevious)
+
   // Calculate percentage change
   const calculatePercentageChange = (current: number, previous: number) => {
     if (previous === 0) return current === 0 ? 0 : 100;
