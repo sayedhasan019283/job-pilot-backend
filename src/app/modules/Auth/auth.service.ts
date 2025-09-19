@@ -183,8 +183,9 @@ const verifyEmail = async (payload: IVerifyEmail) => {
 };
 
 const resetPassword = async (payload: IResetPassword) => {
-  const {email, confirmPassword, newPassword } = payload;
-  if (newPassword !== confirmPassword) {
+  const {email, ConfirmPassword, newPassword } = payload;
+  console.log("==============>>>>>>>>>>" ,email, ConfirmPassword, newPassword)
+  if (newPassword !== ConfirmPassword) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Passwords do not match.');
   }
 
@@ -195,6 +196,7 @@ const resetPassword = async (payload: IResetPassword) => {
   validateUserStatus(user);
 
   user.password = newPassword;
+  user.ConfirmPassword = ConfirmPassword
   await user.save();
 
   return user;
@@ -205,6 +207,7 @@ const changePassword = async (userId: string, payload: IChangePassword) => {
   if (!user) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'User not found.');
   }
+  console.log("============>>>>" , user)
   validateUserStatus(user);
   if (payload.currentPassword === payload.newPassword) {
     throw new ApiError(
@@ -223,6 +226,7 @@ const changePassword = async (userId: string, payload: IChangePassword) => {
     );
   }
   user.password = payload.newPassword;
+  user.ConfirmPassword = payload.currentPassword 
   await user.save();
 
   return user;

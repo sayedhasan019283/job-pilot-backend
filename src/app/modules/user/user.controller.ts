@@ -9,9 +9,21 @@ import ApiError from '../../../errors/ApiError';
 const createUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userData = req.body;
-    if (req.file) {
-      userData.image = '/uploads/users/' + req.file.filename;
+    console.log(userData);
+    const files = req.files as {
+      profileImage?: { filename: string }[];
+      CV?: { filename: string }[];
+    };
+
+    // Handle file uploads and assign paths to userData
+    if (files?.profileImage && files.profileImage[0]?.filename) {
+      userData.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
     }
+    if (files?.CV && files.CV[0]?.filename) {
+      userData.CV = `/uploads/users/${files.CV[0].filename}`;
+    }
+
+    // Check if the user already exists by email
     const isUserExist = await User.findOne({ email: userData?.email });
     if (isUserExist) {
       if (!isUserExist.isEmailVerified) {
@@ -27,7 +39,22 @@ const createUser = catchAsync(
         throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
       }
     }
+
+    // Generate UserId (Auto-increment 4-digit number)
+    const lastUser = await User.findOne().sort({ userId: -1 });  // Sort by userId in descending order to get the last user
+    let newUserId = '0001';  // Default value if no users exist
+
+    if (lastUser) {
+      const lastUserId = parseInt(lastUser.userId, 10);  // Parse the last userId as a number
+      newUserId = (lastUserId + 1).toString().padStart(4, '0');  // Increment and pad with zeros
+    }
+
+    // Attach the generated userId to userData
+    userData.userId = newUserId;
+
+    // Create the user in the database
     const result = await UserService.createUserToDB(userData);
+
     if (result.isEmailVerified) {
       return sendResponse(res, {
         code: StatusCodes.OK,
@@ -44,6 +71,7 @@ const createUser = catchAsync(
     });
   }
 );
+
 
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   const users = await UserService.getAllUsersFromDB();
@@ -98,10 +126,18 @@ const fillUpUserDetails = catchAsync(async (req: Request, res: Response) => {
 
 const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user.id;
-  if (req.file) {
-    req.body.profileImage = '/uploads/users/' + req.file.filename;
-  }
-  const result = await UserService.updateMyProfile(userId, req.body);
+  const payload = req.body;
+  const files = req.files as {
+      profileImage?: { filename: string }[];
+      CV?: { filename: string }[];
+    };
+    if (files?.profileImage && files.profileImage[0]?.filename) {
+      payload.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
+    }
+    if (files?.CV && files.CV[0]?.filename) {
+      payload.CV = `/uploads/users/${files.CV[0].filename}`;
+    }
+  const result = await UserService.updateMyProfile(userId, payload);
   return sendResponse(res, {
     code: StatusCodes.OK,
     message: 'User updated successfully.',

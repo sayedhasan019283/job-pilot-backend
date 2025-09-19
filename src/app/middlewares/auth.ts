@@ -14,6 +14,7 @@ const auth = (...requiredRoles: (keyof typeof USER_ROLE)[]) => {
 
     // Check if the token is missing
     if (!token) {
+      console.log("hear========>>>>>>", token)
       throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
     }
 
@@ -23,9 +24,9 @@ const auth = (...requiredRoles: (keyof typeof USER_ROLE)[]) => {
       config.jwt.accessSecret as string,
     ) as JwtPayload;
 
-    const { role, userId } = decoded;
-    console.log("User Id", userId);
-    const user = await User.findById(userId);
+    const { role, id } = decoded;
+    console.log("User Id", id);
+    const user = await User.findById(id);
 
     if (!user) {
       throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');

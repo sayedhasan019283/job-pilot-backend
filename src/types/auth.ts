@@ -11,7 +11,7 @@ export interface IVerifyEmail {
 export interface IResetPassword {
   email: string;
   newPassword: string;
-  confirmPassword: string;
+  ConfirmPassword: string;
 }
 
 export interface IChangePassword {

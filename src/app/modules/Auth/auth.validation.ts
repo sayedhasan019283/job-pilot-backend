@@ -32,6 +32,9 @@ const resetPasswordValidationSchema = z.object({
     newPassword: z.string({
       required_error: 'New Password is required',
     }),
+    ConfirmPassword: z.string({
+      required_error: 'confirm Password is required',
+    }),
   }),
 });
 

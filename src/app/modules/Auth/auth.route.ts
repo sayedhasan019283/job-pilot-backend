@@ -1,3 +1,4 @@
+import { USER_ROLE } from './../user/user.constant';
 import express from 'express';
 import validateRequest from '../../middlewares/validateRequest';
 import { UserValidation } from '../user/user.validation';
@@ -39,7 +40,7 @@ router.post('/refresh-token', AuthController.refreshToken);
 
 router.patch(
   '/change-password',
-  auth('common'),
+  auth(USER_ROLE.user, USER_ROLE.superAdmin, USER_ROLE.analyst, USER_ROLE.admin),
   validateRequest(AuthValidation.changePasswordValidationSchema),
   AuthController.changePassword
 );

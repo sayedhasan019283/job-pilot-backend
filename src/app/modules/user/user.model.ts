@@ -23,7 +23,11 @@ const userSchema = new Schema<TUser, UserModal>(
       type: String,
       default : '',
     },
-    city: {
+    CV: {
+      type: String,
+      default : '',
+    },
+    address: {
       type: String,
       default : '',
     },
@@ -34,6 +38,9 @@ const userSchema = new Schema<TUser, UserModal>(
     country : {
       type: String,
       default : '',
+    },
+    userId : {
+      type : String,
     },
     password: {
       type: String,
@@ -47,9 +54,13 @@ const userSchema = new Schema<TUser, UserModal>(
       select: false,
       minlength: [8, 'Password must be at least 8 characters long'], // Custom error message for minlength
     },
+    Designation : {
+      type : String,
+      required : [true, "Designation Is Required"]
+    },
     role: {
       type: String,
-      enum: ["admin", "super_admin", "analyst", "user"],
+      enum: ["admin", "superAdmin", "analyst", "user"],
       default: "user"
     },
     isHumanTrue: {

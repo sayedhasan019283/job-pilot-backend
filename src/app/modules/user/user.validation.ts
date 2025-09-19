@@ -18,6 +18,7 @@ const createUserValidationSchema = z.object({
       invalid_type_error: 'Phone number must be string',
     }),
     isHumanTrue: z.boolean().optional(),
+    Designation : z.string({required_error: 'Designation is required.'}),
     password: z
       .string({
         required_error: 'Password is required.',

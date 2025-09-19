@@ -5,6 +5,7 @@ import validateRequest from '../../middlewares/validateRequest';
 import { UserValidation } from './user.validation';
 import fileUploadHandler from '../../middlewares/fileUploadHandler';
 import convertHeicToPngMiddleware from '../../middlewares/convertHeicToPngMiddleware';
+import { USER_ROLE } from './user.constant';
 
 const UPLOADS_FOLDER = 'uploads/users';
 const upload = fileUploadHandler(UPLOADS_FOLDER);
@@ -17,14 +18,21 @@ const router = express.Router();
 router
   .route('/create-user')
   .post(
-    auth('admin'),
-    upload.single('profileImage'),
+    upload.fields([
+      {
+      name: "profileImage",
+      maxCount: 1
+    },
+    {
+      name: "CV",
+      maxCount:1
+    },
+    ]),
     convertHeicToPngMiddleware(UPLOADS_FOLDER),
     UserController.createUser
   );
 router.post(
   '/profile-image',
-  auth('common'),
   upload.single('profileImage'),
   convertHeicToPngMiddleware(UPLOADS_FOLDER),
   UserController.updateUserImage
@@ -40,13 +48,22 @@ router.post(
 //   UserController.fillUpUserDetails
 // );
 // sub routes must be added after the main routes
-router.get('/profile', auth('common'), UserController.getMyProfile);
+router.get('/profile', UserController.getMyProfile);
 
 router.patch(
-  '/profile',
-  auth('common'),
-  validateRequest(UserValidation.updateUserValidationSchema),
-  upload.single('profileImage'),
+  '/profile-update',
+  auth(USER_ROLE.user),
+  // validateRequest(UserValidation.updateUserValidationSchema),
+  upload.fields([
+      {
+      name: "profileImage",
+      maxCount: 1
+    },
+    {
+      name: "CV",
+      maxCount:1
+    },
+    ]),
   convertHeicToPngMiddleware(UPLOADS_FOLDER),
   UserController.updateMyProfile
 );
@@ -60,11 +77,10 @@ router.get(
 //main routes
 router
   .route('/')
-  .get(auth('common'), UserController.getAllUsers)
-  .delete(auth('common'), UserController.deleteMyProfile);
+  .get( UserController.getAllUsers)
+  .delete( UserController.deleteMyProfile);
 router.get(
   '/single-user/:id',
-  auth("common"),
   UserController.getSingleUserById
 )
 
