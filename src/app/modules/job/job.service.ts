@@ -51,9 +51,8 @@ const deleteAppliedJobFromDB = async (appliedJobId : string) => {
 }  
 
 const filterByStatusFromDB = async (status: string, page: number, limit: number) => {
-    console.log("Filtering jobs with status:", status);
-
-    const result = await JobModel.find({ status }) // Use dynamic status here
+  console.log("status====>>>", typeof(status))
+    const result = await JobModel.find({ status : status })
         .sort({ createdAt: -1 })  // Sort by descending order
         .skip((page - 1) * limit) // Skip (page - 1) * limit records
         .limit(limit); // Limit to the specified number of records
@@ -64,7 +63,29 @@ const filterByStatusFromDB = async (status: string, page: number, limit: number)
 
     return result;
 };
+const filterByStatusForSingleUserFromDB = async (status: string, page: number, limit: number, id : string) => {
+  console.log("status====>>>", typeof(status))
+  let result;
+    
+  if (status) {
+    result = await JobModel.find({ userId : id , status : status })
+        .sort({ createdAt: -1 })  // Sort by descending order
+        .skip((page - 1) * limit) // Skip (page - 1) * limit records
+        .limit(limit); // Limit to the specified number of records
 
+  } else {
+    result = await JobModel.find({ userId : id })
+        .sort({ createdAt: -1 })  // Sort by descending order
+        .skip((page - 1) * limit) // Skip (page - 1) * limit records
+        .limit(limit); // Limit to the specified number of records
+
+  }
+    if (!result || result.length === 0) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "Didn't find any data!");
+    }
+
+    return result;
+};
 
 
 const getTimeRange = (period: 'day' | 'week' | 'month', date = new Date()) => {
@@ -141,5 +162,6 @@ export const jobService = {
     updateJobAppliedIntoDB,
     deleteAppliedJobFromDB,
     filterByStatusFromDB,
+    filterByStatusForSingleUserFromDB,
     dashboardDataFromDB
 }

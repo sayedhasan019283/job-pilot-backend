@@ -42,4 +42,12 @@ router.delete(
 
 // update and get by id route need to add
 
+router.get(
+  '/get-single/:itemId',
+  auth(USER_ROLE.admin , USER_ROLE.superAdmin, USER_ROLE.user, USER_ROLE.analyst),
+  libraryController.getOneItemById
+)
+
+
+
 export const LibraryRoute = router;

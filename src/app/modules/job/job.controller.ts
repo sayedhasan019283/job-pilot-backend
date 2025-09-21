@@ -39,6 +39,25 @@ const readAllJobApplied = catchAsync(async (req: Request, res: Response, next: N
         data: result
     });
 });
+const readAllJobAppliedForSingleUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    let { status, page, limit } = req.query;
+    const {id} = req.user
+
+    const pageNumber = parseInt(page as string) || 1;
+    const limitNumber = parseInt(limit as string) || 10;
+
+   
+
+
+    const  result = await jobService.filterByStatusForSingleUserFromDB(status as string, pageNumber, limitNumber, id);
+
+
+    sendResponse(res, {
+        code: StatusCodes.OK,
+        message: "Get All job Applied Data!",
+        data: result
+    });
+});
 
 
 const readSingleJobApplied = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
@@ -108,5 +127,6 @@ export const jobController = {
     readSingleJobApplied,
     updateJobApplied,
     deleteAppliedJob,
-    dashboardData
+    dashboardData,
+    readAllJobAppliedForSingleUser
 }

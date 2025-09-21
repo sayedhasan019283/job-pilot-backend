@@ -38,8 +38,19 @@ const deleteLibraryItem = async (id : string) => {
     return result
 } 
 
+const getOneItemByIdFromDB = async (itemId : string) => {
+    const result = await LibraryModel.findById(itemId);
+    if (!result) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found With this Id");
+    }
+
+    return result
+
+}
+
 export const libraryService = {
     createLibraryItem,
     readAllCreateLibraryItem,
-    deleteLibraryItem
+    deleteLibraryItem,
+    getOneItemByIdFromDB
 }

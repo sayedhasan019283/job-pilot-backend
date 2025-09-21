@@ -20,6 +20,11 @@ router.get(
     jobController.readAllJobApplied
 )    
 router.get(
+    '/get-one-user-jobs', // status as query
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin, USER_ROLE.user),
+    jobController.readAllJobAppliedForSingleUser
+)    
+router.get(
     '/get-single/:appliedJobId',
     auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin, USER_ROLE.user),
     auth('admin'),
