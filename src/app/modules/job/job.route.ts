@@ -1,38 +1,38 @@
+import { USER_ROLE } from './../user/user.constant';
 import express from 'express'
 import validateRequest from '../../middlewares/validateRequest';
 import { jobValidationSchema } from './job.validation';
 import { jobController } from './job.controller';
 import auth from '../../middlewares/auth';
-import { USER_ROLE } from '../user/user.constant';
 
 
 const router = express.Router();
 
 router.post(
     '/create',
-    auth(USER_ROLE.admin),
+    auth(USER_ROLE.admin, USER_ROLE.superAdmin),
     validateRequest(jobValidationSchema),
     jobController.createAppliedJob
 )
 router.get(
     '/get-all', // status as query
-    auth(USER_ROLE.admin),
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
     jobController.readAllJobApplied
-)  
+)    
 router.get(
     '/get-single/:appliedJobId',
-    auth(USER_ROLE.admin),
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin, USER_ROLE.user),
     auth('admin'),
     jobController.readSingleJobApplied
 ) 
 router.patch(
     '/update/:appliedJobId',
-    auth(USER_ROLE.admin),
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
     jobController.updateJobApplied
 )
 router.delete(
     '/delete/:appliedJobId',
-    auth(USER_ROLE.admin),
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
     jobController.deleteAppliedJob
 ) 
 
@@ -44,6 +44,7 @@ router.delete(
 
 router.get(
     '/dashboard-data/:period',
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
     jobController.dashboardData
 )
 

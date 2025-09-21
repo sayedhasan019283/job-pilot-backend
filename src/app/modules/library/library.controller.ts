@@ -24,7 +24,11 @@ const createLibraryItem = catchAsync(async(req : Request, res : Response, next :
 })
 
 const readAllCreateLibraryItem = async (req : Request, res : Response, next : NextFunction) => {
-    const result = await libraryService.readAllCreateLibraryItem();
+  const {page, limit} = req.query
+
+  const pageNumber = parseInt(page as string) || 1;
+    const limitNumber = parseInt(limit as string) || 10;
+    const result = await libraryService.readAllCreateLibraryItem(pageNumber, limitNumber);
     sendResponse(res, {
         code : 200,
         message : "Library Items Get successfully.",

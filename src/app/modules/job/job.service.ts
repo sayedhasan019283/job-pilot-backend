@@ -13,13 +13,19 @@ const createAppliedIntoDB = async (payload : TJob) => {
     return result;
 }
 
-const readAllJobAppliedIntoDB = async () => {
-    const result =  await JobModel.find({})
+const readAllJobAppliedIntoDB = async (page: number, limit: number) => {
+    const result = await JobModel.find({})
+        .sort({ createdAt: -1 })  // Sort by descending order
+        .skip((page - 1) * limit) // Skip (page - 1) * limit records
+        .limit(limit); // Limit to the specified number of records
+
     if (!result || result.length === 0) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!")
+        throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!");
     }
-    return result
-}
+
+    return result;
+};
+
 const readSingleJobAppliedIntoDB = async (appliedJobId : string) => {
     const result =  await JobModel.findOne({_id : appliedJobId})
     if (!result) {
@@ -42,15 +48,24 @@ const deleteAppliedJobFromDB = async (appliedJobId : string) => {
         throw new ApiError(StatusCodes.BAD_REQUEST, "Delete Failed")
     }
     return result
-} 
+}  
 
-const filterByStatusFromDB = async (status: string) => {
-    const result = await JobModel.find({ status: status });
-    if ( !result || result.length === 0) {
+const filterByStatusFromDB = async (status: string, page: number, limit: number) => {
+    console.log("Filtering jobs with status:", status);
+
+    const result = await JobModel.find({ status }) // Use dynamic status here
+        .sort({ createdAt: -1 })  // Sort by descending order
+        .skip((page - 1) * limit) // Skip (page - 1) * limit records
+        .limit(limit); // Limit to the specified number of records
+
+    if (!result || result.length === 0) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "Didn't find any data!");
     }
+
     return result;
 };
+
+
 
 const getTimeRange = (period: 'day' | 'week' | 'month', date = new Date()) => {
   switch (period) {

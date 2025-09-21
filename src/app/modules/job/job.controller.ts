@@ -15,21 +15,31 @@ const createAppliedJob = catchAsync(async (req : Request , res : Response , next
     })
 })
 
-const readAllJobApplied = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
-    const {status} = req.query;
+const readAllJobApplied = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    let { status, page, limit } = req.query;
+
+    // Parse 'page' and 'limit' query parameters as numbers
+    // Default to page 1 and limit 10 if not provided or invalid
+    const pageNumber = parseInt(page as string) || 1;
+    const limitNumber = parseInt(limit as string) || 10;
+
     let result;
-     // Check if status is provided
+
+    // Check if status is provided
     if (!status) {
-        result = await jobService.readAllJobAppliedIntoDB();
+        result = await jobService.readAllJobAppliedIntoDB(pageNumber, limitNumber);
     } else {
-        result = await jobService.filterByStatusFromDB(status as string); // Type assertion for status
+        // Pass the status from the query dynamically to filterByStatusFromDB
+        result = await jobService.filterByStatusFromDB(status as string, pageNumber, limitNumber);
     }
-    sendResponse(res , {
-        code : StatusCodes.OK,
-        message : "Get All job Applied Data!",
-        data : result
-    })
-})
+
+    sendResponse(res, {
+        code: StatusCodes.OK,
+        message: "Get All job Applied Data!",
+        data: result
+    });
+});
+
 
 const readSingleJobApplied = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
     const {appliedJobId} = req.params

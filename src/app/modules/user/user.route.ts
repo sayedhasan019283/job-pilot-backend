@@ -77,7 +77,7 @@ router.get(
 //main routes
 router
   .route('/')
-  .get( UserController.getAllUsers)
+  .get( auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.analyst) ,UserController.getAllUsers)
   .delete( UserController.deleteMyProfile);
 router.get(
   '/single-user/:id',

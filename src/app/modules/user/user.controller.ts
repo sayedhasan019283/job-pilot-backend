@@ -74,7 +74,18 @@ const createUser = catchAsync(
 
 
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
-  const users = await UserService.getAllUsersFromDB();
+  const {page, limit, role} = req.query
+  console.log("===========>>" ,typeof(page), typeof(limit), role)
+  // Default to page 1 and limit 10 if not provided or invalid
+    const pageNumber = parseInt(page as string) || 1;
+    const limitNumber = parseInt(limit as string) || 10;
+    const userRole = role as string
+    let users
+  if (role) {
+     users = await UserService.getAllUsersByRoleFromDB(pageNumber, limitNumber, userRole);
+  } else {
+    users = await UserService.getAllUsersFromDB(pageNumber, limitNumber);
+  }
   return sendResponse(res, {
     code: StatusCodes.OK,
     message: 'Users retrieved successfully.',

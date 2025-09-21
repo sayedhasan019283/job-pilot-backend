@@ -3,6 +3,8 @@ import { libraryController } from "./library.controller";
 import fileUploadHandler from "../../middlewares/fileUploadHandler";
 import validateRequest from "../../middlewares/validateRequest";
 import { libraryValidation } from "./library.validation";
+import { USER_ROLE } from "../user/user.constant";
+import auth from "../../middlewares/auth";
 
 const router = express.Router()
 
@@ -14,6 +16,7 @@ const upload = fileUploadHandler(UPLOADS_FOLDER_USER_DOCUMENTS)
 router.post(
     '/create',
     // validateRequest(libraryValidation.fileUploadSchema),
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
      upload.fields([
     {
       name: "fileUrl",
@@ -28,11 +31,15 @@ router.post(
 )
 router.get(
     '/get-all',
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
     libraryController.readAllCreateLibraryItem
 )
 router.delete(
     '/delete/:id',
+    auth(USER_ROLE.admin , USER_ROLE.superAdmin),
     libraryController.deleteLibraryItem
 )
+
+// update and get by id route need to add
 
 export const LibraryRoute = router;

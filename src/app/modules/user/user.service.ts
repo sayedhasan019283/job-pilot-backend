@@ -29,8 +29,19 @@ const createUserToDB = async (payload: Partial<TUser>) => {
 };
 
 //get all user
-const getAllUsersFromDB = async () => {
-  const users = await User.find({ role: 'user' }).sort({ createdAt: -1 });
+const getAllUsersFromDB = async (pageNumber : number, limitNumber : number) => {
+  const users = await User.find({ role: 'user' })
+  .sort({ createdAt: -1 })
+  .skip((pageNumber - 1) * limitNumber) // Skip (page - 1) * limit records
+  .limit(limitNumber); // Limit to the specified number of records;
+  return users;
+};
+
+const getAllUsersByRoleFromDB = async (pageNumber : number, limitNumber : number, role : string) => {
+  const users = await User.find({ role: role })
+  .sort({ createdAt: -1 })
+  .skip((pageNumber - 1) * limitNumber) // Skip (page - 1) * limit records
+  .limit(limitNumber); // Limit to the specified number of records;
   return users;
 };
 
@@ -155,9 +166,11 @@ const getSingleUserById = async (id :string) => {
   return result
 }
 
+
 export const UserService = {
   createUserToDB,
   getAllUsersFromDB,
+  getAllUsersByRoleFromDB,
   getSingleUserFromDB,
   getMyProfile,
   updateMyProfile,

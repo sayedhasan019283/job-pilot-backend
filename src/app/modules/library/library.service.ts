@@ -11,13 +11,24 @@ const createLibraryItem = async (payload : TFileUpload) => {
     return result 
 }
 
-const readAllCreateLibraryItem = async () => {
+const readAllCreateLibraryItem = async (page: number, limit: number) => {
+    // Calculate the number of records to skip based on the current page
+    const skip = (page - 1) * limit;
+
+    // Find the records with pagination and sorted by createdAt in descending order
     const result = await LibraryModel.find({})
+        .sort({ createdAt: -1 })
+        .skip(skip)  // Skip the records based on the page
+        .limit(limit);  // Limit the number of records to 'limit'
+
+    // If no results are found, throw an error
     if (!result || result.length === 0) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Exist in DB!")
+        throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Exist in DB!");
     }
-    return result
+
+    return result;
 }
+
 
 const deleteLibraryItem = async (id : string) => {
     const result = await LibraryModel.findByIdAndDelete(id);

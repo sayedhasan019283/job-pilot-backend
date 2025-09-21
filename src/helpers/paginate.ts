@@ -1,5 +1,5 @@
 import { Schema, FilterQuery } from 'mongoose';
-import { PaginateOptions, PaginateResult } from '../../../types/paginate';
+import { PaginateOptions, PaginateResult } from '../types/paginate';
 // Plugin function for pagination
 const paginate = <T>(schema: Schema<T>) => {
   schema.statics.paginate = async function (
