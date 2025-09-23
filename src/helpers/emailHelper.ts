@@ -83,10 +83,55 @@ const generateEmailBody = (otp: string, type: string) => {
   `;
 };
 
+const generateEmailBodyForInvitation = (email: string, password: string, role: string, type: string) => {
+  const title = 'You are Invited to Join Qeyys!';
+  const introText =
+    'We are excited to invite you to join Qeyys! Your account has been created, and we’ve set up your credentials for you. Please use the details below to log in to your account.';
+
+  return `
+    <body style="background-color: #f3f4f6; font-family: 'Arial', sans-serif; color: #333; margin: 0; padding: 0;">
+      <div style="width: 80%; margin:0 auto; padding: 1rem; background-color: #f3f4f6;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); text-align: center;">
+          <!-- Logo -->
+          <img src="https://i.postimg.cc/SsVJt2ys/locksimt.gif" alt="Qeyys Logo" style="max-width: 120px; margin-bottom: 20px; border-radius: 10px;">
+
+          <!-- Header -->
+          <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: #1f2937; font-family: 'Helvetica Neue', sans-serif;">${title}</h1>
+
+          <!-- Introductory Text -->
+          <p style="color: #4b5563; margin-bottom: 1.5rem; font-size: 1rem; line-height: 1.5;">${introText}</p>
+
+          <!-- Invitation Credentials -->
+          <div style="background-color: #F3F4F6; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; text-align: left;">
+            <p style="color: #333; font-size: 1rem; margin: 0;"><strong>Email:</strong> ${email}</p>
+            <p style="color: #333; font-size: 1rem; margin: 0;"><strong>Password:</strong> ${password}</p>
+            <p style="color: #333; font-size: 1rem; margin: 0;"><strong>Role:</strong> ${role}</p>
+          </div>
+
+          <!-- Login Instructions -->
+          <p style="color: #4b5563; margin-bottom: 1.5rem; font-size: 1rem;">Use the credentials above to log in and complete your profile on Qeyys. We look forward to having you with us!</p>
+
+          <!-- Footer Text -->
+          <p style="color: #6b7280; font-size: 0.875rem; margin-top: 1.5rem;">If you did not request this invitation, please ignore this email.</p>
+          <p style="color: #6b7280; font-size: 0.875rem;">Thanks, The Qeyys Team</p>
+
+        </div>
+      </div>
+    </body>
+  `;
+};
+
+
 // Function to send email verification
 const sendEmailVerification = async (to: string, otp: string) => {
   const subject = ' Account Verification Code : ';
   const html = generateEmailBody(otp, 'Account Verification');
+  await sendEmail({ to, subject, html });
+};
+// Function to send email verification
+const sendEmailInvitation = async (to: string, password: string, role : string) => {
+  const subject = ' We Invite You In Our System ';
+  const html = generateEmailBodyForInvitation(to ,password, role, 'Invitation');
   await sendEmail({ to, subject, html });
 };
 
@@ -97,4 +142,4 @@ const sendResetPasswordEmail = async (to: string, otp: string) => {
   await sendEmail({ to, subject, html });
 };
 
-export { sendEmailVerification, sendResetPasswordEmail };
+export { sendEmailVerification, sendResetPasswordEmail, sendEmailInvitation};

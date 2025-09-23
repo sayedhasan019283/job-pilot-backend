@@ -12,6 +12,7 @@ const userSchema = new Schema<TUser, UserModal>(
     },
     email: {
       type: String,
+      unique : true,
       required: [true, 'Email is required'], // Custom error message
       lowercase: true,
     },

@@ -31,7 +31,7 @@ router.post(
 )
 router.get(
     '/get-all',
-    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin, USER_ROLE.user),
     libraryController.readAllCreateLibraryItem
 )
 router.delete(

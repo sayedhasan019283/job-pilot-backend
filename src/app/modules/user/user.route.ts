@@ -31,6 +31,51 @@ router
     convertHeicToPngMiddleware(UPLOADS_FOLDER),
     UserController.createUser
   );
+  router.post(
+    '/create-admin',
+    upload.fields([
+      {
+      name: "profileImage",
+      maxCount: 1
+    },
+    {
+      name: "CV",
+      maxCount:1
+    },
+    ]),
+    // auth(USER_ROLE.superAdmin),
+    UserController.createAdmin
+  )
+  router.post(
+    '/create-analyst',
+    upload.fields([
+      {
+      name: "profileImage",
+      maxCount: 1
+    },
+    {
+      name: "CV",
+      maxCount:1
+    },
+    ]),
+    // auth(USER_ROLE.superAdmin),
+    UserController.createAnalyst
+  )
+  router.post(
+    '/create-manual-user',
+    upload.fields([
+      {
+      name: "profileImage",
+      maxCount: 1
+    },
+    {
+      name: "CV",
+      maxCount:1
+    },
+    ]),
+    // auth(USER_ROLE.superAdmin),
+    UserController.createManualUser
+  )
 router.post(
   '/profile-image',
   upload.single('profileImage'),

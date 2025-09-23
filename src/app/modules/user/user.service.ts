@@ -2,20 +2,18 @@ import { StatusCodes } from 'http-status-codes';
 import ApiError from '../../../errors/ApiError';
 import { User } from './user.model';
 import { TUser } from './user.interface';
-import { sendEmailVerification } from '../../../helpers/emailHelper';
+import { sendEmailInvitation, sendEmailVerification } from '../../../helpers/emailHelper';
 import { PaginateOptions, PaginateResult } from '../../../types/paginate';
 import createOtp from '../Auth/createOtp';
 
 //create new user
 const createUserToDB = async (payload: Partial<TUser>) => {
-  const existingUser = await User.findOne({ email: payload.email });
-  if (existingUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Email is already in use!');
-  }
   const { oneTimeCode, oneTimeCodeExpire } = createOtp();
   payload.otpCountDown = 180;
   payload.oneTimeCode = oneTimeCode;
   payload.oneTimeCodeExpire = oneTimeCodeExpire;
+
+  console.log("payload==============>>>>>>>>>>>" ,payload)
 
   const newUser = await User.create(payload);
   if (!newUser) {
@@ -25,8 +23,27 @@ const createUserToDB = async (payload: Partial<TUser>) => {
     // Send email verification
     await sendEmailVerification(newUser.email as string, oneTimeCode);
   }
+
   return newUser;
 };
+const createAdminAnalystUserToDB = async (payload: Partial<TUser>) => {
+  payload.otpCountDown = 180;
+
+  console.log("payload==============>>>>>>>>>>>" ,payload)
+
+  const newUser = await User.create(payload);
+  if (!newUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create user');
+  }
+  if (!newUser.isEmailVerified) {
+    // Send email verification
+    await sendEmailInvitation(newUser.email as string, payload.password as string, 
+      newUser.role as string);
+  }
+
+  return newUser;
+};
+
 
 //get all user
 const getAllUsersFromDB = async (pageNumber : number, limitNumber : number) => {
@@ -179,4 +196,5 @@ export const UserService = {
   deleteMyProfile,
   isUpdateUser,
   changeUserStatus,
+  createAdminAnalystUserToDB
 };

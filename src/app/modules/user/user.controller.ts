@@ -6,71 +6,240 @@ import { UserService } from './user.service';
 import { User } from './user.model';
 import ApiError from '../../../errors/ApiError';
 
-const createUser = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const userData = req.body;
-    console.log(userData);
-    const files = req.files as {
-      profileImage?: { filename: string }[];
-      CV?: { filename: string }[];
-    };
+const createUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const userData = req.body;
+  console.log("userData controller ===========>>>>>>>>>" ,userData);
 
-    // Handle file uploads and assign paths to userData
-    if (files?.profileImage && files.profileImage[0]?.filename) {
-      userData.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
-    }
-    if (files?.CV && files.CV[0]?.filename) {
-      userData.CV = `/uploads/users/${files.CV[0].filename}`;
-    }
+  const files = req.files as {
+    profileImage?: { filename: string }[];
+    CV?: { filename: string }[];
+  };
 
-    // Check if the user already exists by email
-    const isUserExist = await User.findOne({ email: userData?.email });
-    if (isUserExist) {
-      if (!isUserExist.isEmailVerified) {
-        const result = await UserService.isUpdateUser(isUserExist.email);
+  // Handle file uploads and assign paths to userData
+  if (files?.profileImage && files.profileImage[0]?.filename) {
+    userData.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
+  }
+  if (files?.CV && files.CV[0]?.filename) {
+    userData.CV = `/uploads/users/${files.CV[0].filename}`;
+  }
 
-        return sendResponse(res, {
-          code: StatusCodes.OK,
-          message:
-            'OTP sent to your email, please verify your email within the next 3 minutes.',
-          data: result,
-        });
-      } else {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
-      }
-    }
-
-    // Generate UserId (Auto-increment 4-digit number)
-    const lastUser = await User.findOne().sort({ userId: -1 });  // Sort by userId in descending order to get the last user
-    let newUserId = '0001';  // Default value if no users exist
-
-    if (lastUser) {
-      const lastUserId = parseInt(lastUser.userId, 10);  // Parse the last userId as a number
-      newUserId = (lastUserId + 1).toString().padStart(4, '0');  // Increment and pad with zeros
-    }
-
-    // Attach the generated userId to userData
-    userData.userId = newUserId;
-
-    // Create the user in the database
-    const result = await UserService.createUserToDB(userData);
-
-    if (result.isEmailVerified) {
+  // Check if the user already exists by email
+  const isUserExist = await User.findOne({ email: userData?.email });
+  if (isUserExist) {
+    if (!isUserExist.isEmailVerified) {
+      const result = await UserService.isUpdateUser(isUserExist.email);
       return sendResponse(res, {
         code: StatusCodes.OK,
-        message: "User's account created successfully.",
+        message: 'User Exist! Need To Verify Email! OTP sent to your email, please verify your email within the next 3 minutes.',
         data: result,
       });
+    } else {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
     }
+  }
 
+  // Generate UserId (Auto-increment 4-digit number)
+  const lastUser = await User.findOne().sort({ userId: -1 });
+  let newUserId = '0001'; 
+
+  if (lastUser) {
+    const lastUserId = parseInt(lastUser.userId, 10);
+    newUserId = (lastUserId + 1).toString().padStart(4, '0');
+  }
+
+  userData.userId = newUserId;
+
+  // Create the user in the database
+  const result = await UserService.createUserToDB(userData);
+
+  if (result.isEmailVerified) {
     return sendResponse(res, {
       code: StatusCodes.OK,
-      message:
-        'OTP sent to your email, please verify your email within the next 3 minutes.',
+      message: "User's account created successfully.",
       data: result,
     });
   }
-);
+
+  return sendResponse(res, {
+    code: StatusCodes.OK,
+    message: 'OTP sent to your email, please verify your email within the next 3 minutes.',
+    data: result,
+  });
+});
+const createAdmin = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const userData = req.body;
+  console.log("userData controller ===========>>>>>>>>>" ,userData);
+
+  const files = req.files as {
+    profileImage?: { filename: string }[];
+    CV?: { filename: string }[];
+  };
+
+  userData.address = "N/A"
+  userData.Designation = "N/A"
+  userData.ConfirmPassword = userData.password
+  userData.role = "admin"
+
+  // Handle file uploads and assign paths to userData
+  if (files?.profileImage && files.profileImage[0]?.filename) {
+    userData.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
+  }
+  if (files?.CV && files.CV[0]?.filename) {
+    userData.CV = `/uploads/users/${files.CV[0].filename}`;
+  }
+
+  // Check if the user already exists by email
+  const isUserExist = await User.findOne({ email: userData?.email });
+  if (isUserExist) {
+
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
+  
+  }
+
+  // Generate UserId (Auto-increment 4-digit number)
+  const lastUser = await User.findOne().sort({ userId: -1 });
+  let newUserId = '0001'; 
+
+  if (lastUser) {
+    const lastUserId = parseInt(lastUser.userId, 10);
+    newUserId = (lastUserId + 1).toString().padStart(4, '0');
+  }
+
+  userData.userId = newUserId;
+
+  // Create the user in the database
+  const result = await UserService.createAdminAnalystUserToDB(userData);
+
+  if (result.isEmailVerified) {
+    return sendResponse(res, {
+      code: StatusCodes.OK,
+      message: "User's account created successfully.",
+      data: result,
+    });
+  }
+
+  return sendResponse(res, {
+    code: StatusCodes.OK,
+    message: 'OTP sent to your email, please verify your email within the next 3 minutes.',
+    data: result,
+  });
+});
+const createManualUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const userData = req.body;
+  console.log("userData controller ===========>>>>>>>>>" ,userData);
+
+  const files = req.files as {
+    profileImage?: { filename: string }[];
+    CV?: { filename: string }[];
+  };
+
+  userData.address = "N/A"
+  userData.ConfirmPassword = userData.password
+  userData.role = "user"
+
+  // Handle file uploads and assign paths to userData
+  if (files?.profileImage && files.profileImage[0]?.filename) {
+    userData.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
+  }
+  if (files?.CV && files.CV[0]?.filename) {
+    userData.CV = `/uploads/users/${files.CV[0].filename}`;
+  }
+
+  // Check if the user already exists by email
+  const isUserExist = await User.findOne({ email: userData?.email });
+  if (isUserExist) {
+
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
+  
+  }
+
+  // Generate UserId (Auto-increment 4-digit number)
+  const lastUser = await User.findOne().sort({ userId: -1 });
+  let newUserId = '0001'; 
+
+  if (lastUser) {
+    const lastUserId = parseInt(lastUser.userId, 10);
+    newUserId = (lastUserId + 1).toString().padStart(4, '0');
+  }
+
+  userData.userId = newUserId;
+
+  // Create the user in the database
+  const result = await UserService.createAdminAnalystUserToDB(userData);
+
+  if (result.isEmailVerified) {
+    return sendResponse(res, {
+      code: StatusCodes.OK,
+      message: "User's account created successfully.",
+      data: result,
+    });
+  }
+
+  return sendResponse(res, {
+    code: StatusCodes.OK,
+    message: 'OTP sent to your email, please verify your email within the next 3 minutes.',
+    data: result,
+  });
+});
+const createAnalyst = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const userData = req.body;
+  console.log("userData controller ===========>>>>>>>>>" ,userData);
+
+  const files = req.files as {
+    profileImage?: { filename: string }[];
+    CV?: { filename: string }[];
+  };
+
+  userData.address = "N/A"
+  userData.Designation = "N/A"
+  userData.ConfirmPassword = userData.password
+  userData.role = "analyst"
+
+  // Handle file uploads and assign paths to userData
+  if (files?.profileImage && files.profileImage[0]?.filename) {
+    userData.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
+  }
+  if (files?.CV && files.CV[0]?.filename) {
+    userData.CV = `/uploads/users/${files.CV[0].filename}`;
+  }
+
+  // Check if the user already exists by email
+  const isUserExist = await User.findOne({ email: userData?.email });
+  if (isUserExist) {
+
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
+  
+  }
+
+  // Generate UserId (Auto-increment 4-digit number)
+  const lastUser = await User.findOne().sort({ userId: -1 });
+  let newUserId = '0001'; 
+
+  if (lastUser) {
+    const lastUserId = parseInt(lastUser.userId, 10);
+    newUserId = (lastUserId + 1).toString().padStart(4, '0');
+  }
+
+  userData.userId = newUserId;
+
+  // Create the user in the database
+  const result = await UserService.createAdminAnalystUserToDB(userData);
+
+  if (result.isEmailVerified) {
+    return sendResponse(res, {
+      code: StatusCodes.OK,
+      message: "User's account created successfully.",
+      data: result,
+    });
+  }
+
+  return sendResponse(res, {
+    code: StatusCodes.OK,
+    message: 'OTP sent to your email, please verify your email within the next 3 minutes.',
+    data: result,
+  });
+});
+
 
 
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
@@ -215,5 +384,9 @@ export const UserController = {
   fillUpUserDetails,
   deleteMyProfile,
   changeUserStatus,
-  getSingleUserById
+  getSingleUserById,
+  createAdmin,
+  createManualUser,
+  createAnalyst
+
 };
