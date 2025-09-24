@@ -93,7 +93,7 @@ router.post(
 //   UserController.fillUpUserDetails
 // );
 // sub routes must be added after the main routes
-router.get('/profile', UserController.getMyProfile);
+router.get('/profile',auth(USER_ROLE.user, USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.analyst), UserController.getMyProfile);
 
 router.patch(
   '/profile-update',
