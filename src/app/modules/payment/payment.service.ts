@@ -2,7 +2,7 @@ import { User } from "../user/user.model";
 import { TPayment } from "./payment.interface";
 import { PaymentModel } from "./payment.model";
 
-const createPaymentToDB = async (payload : TPayment, userId : string) => {
+const createPaymentToDB = async (payload: TPayment, userId: string) => {
     // Check if the userId exists and is a valid user
     const user = await User.findById(userId);
     if (!user) {
@@ -15,9 +15,21 @@ const createPaymentToDB = async (payload : TPayment, userId : string) => {
     // Create the payment record
     const payment = await PaymentModel.create(paymentPayload);
 
-    // Return the created payment
+    // Calculate the subscription end date (30 days from now)
+    const subStartDate = Date.now(); // Current time in milliseconds
+    const subEndDate = subStartDate + (30 * 24 * 60 * 60 * 1000); // Adding 30 days
+
+    // Update user subscription status and end date
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { isSubscription: true, subEndDate }, // Update subscription status and end date
+      { new: true } // Return the updated user document
+    );
+
+    // Return the created payment and the updated user (if needed)
     return payment;
 }
+
 
 const getAllPaymentFromDB = async () => {
     const result = await PaymentModel.find({}).populate('userId');
