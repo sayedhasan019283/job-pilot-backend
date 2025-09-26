@@ -26,7 +26,7 @@ const createPaymentToDB = async (payload: TPayment, userId: string) => {
       { new: true } // Return the updated user document
     );
 
-    // Return the created payment and the updated user (if needed)
+    // Return the created payment 
     return payment;
 }
 

@@ -22,3 +22,5 @@ cron.schedule('0 0 * * *', async () => {
 
   console.log('Cron job completed. Checked for expired subscriptions.');
 });
+
+
