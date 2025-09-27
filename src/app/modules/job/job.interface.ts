@@ -7,6 +7,7 @@ export type TJob = {
   userId: Types.ObjectId; 
   adminId: Types.ObjectId;
   status: string;
+  companyLogo : string;
   appliedDate: Date;
   jdLink: string;
 }

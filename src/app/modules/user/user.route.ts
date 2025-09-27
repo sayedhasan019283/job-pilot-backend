@@ -9,8 +9,6 @@ import { USER_ROLE } from './user.constant';
 
 const UPLOADS_FOLDER = 'uploads/users';
 const upload = fileUploadHandler(UPLOADS_FOLDER);
-const UPLOADS_DRIVING_LICENSE_FOLDER = 'uploads/users/driving_licenses';
-const uploadDrivingLicense = fileUploadHandler(UPLOADS_DRIVING_LICENSE_FOLDER);
 
 const router = express.Router();
 

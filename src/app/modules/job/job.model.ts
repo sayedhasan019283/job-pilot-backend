@@ -10,9 +10,11 @@ const jobSchema = new Schema<TJob>({
   status: {
      type: String,
      enum : ["Applied", "Shortlisted", "Rejected", "Interview"],
-    required: true 
+    required: true, 
+    default : 'Applied'
   },
   appliedDate: { type: Date, required: true },
+  companyLogo : {type : String},
   jdLink: { type: String, required: true },
 });
 

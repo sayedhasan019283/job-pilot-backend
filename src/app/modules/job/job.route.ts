@@ -4,14 +4,18 @@ import validateRequest from '../../middlewares/validateRequest';
 import { jobValidationSchema } from './job.validation';
 import { jobController } from './job.controller';
 import auth from '../../middlewares/auth';
+import fileUploadHandler from '../../middlewares/fileUploadHandler';
 
+const UPLOADS_FOLDER = 'uploads/jobs';
+const upload = fileUploadHandler(UPLOADS_FOLDER);
 
 const router = express.Router();
 
 router.post(
     '/create',
+    upload.single('companyLogo'),
     auth(USER_ROLE.admin, USER_ROLE.superAdmin),
-    validateRequest(jobValidationSchema),
+    // validateRequest(jobValidationSchema),
     jobController.createAppliedJob
 )
 router.get(

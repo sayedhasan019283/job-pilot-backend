@@ -5,8 +5,12 @@ import sendResponse from "../../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 
 const createAppliedJob = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
+    console.log( req.file)
     const payload = req.body;
     const adminId = req.user.id;
+    if (req.file) {
+         payload.companyLogo =  `/uploads/jobs/${req.file.filename}`
+    }
     const result = await jobService.createAppliedIntoDB({...payload, adminId});
     sendResponse(res, {
         code : StatusCodes.OK,
