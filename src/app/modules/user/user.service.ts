@@ -183,6 +183,11 @@ const getSingleUserById = async (id :string) => {
   return result
 }
 
+const searchByUidFromDB = async (Uid : string) => {
+  const result = await User.find({userId : Uid});
+  return result;
+}
+
 
 export const UserService = {
   createUserToDB,
@@ -196,5 +201,6 @@ export const UserService = {
   deleteMyProfile,
   isUpdateUser,
   changeUserStatus,
-  createAdminAnalystUserToDB
+  createAdminAnalystUserToDB,
+  searchByUidFromDB
 };

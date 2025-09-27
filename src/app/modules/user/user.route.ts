@@ -128,5 +128,9 @@ router.get(
   '/single-user/:id',
   UserController.getSingleUserById
 )
-
+router.get(
+  '/search-user/:Uid',
+  auth(USER_ROLE.superAdmin, USER_ROLE.admin),
+  UserController.searchByUid
+)
 export const UserRoutes = router;

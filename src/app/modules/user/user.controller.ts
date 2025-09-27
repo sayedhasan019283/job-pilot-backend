@@ -374,6 +374,19 @@ const getSingleUserById = catchAsync(async (req , res) => {
   });
 })
 
+const searchByUid = catchAsync(async (req : Request, res : Response, next : NextFunction) => {
+  const {Uid} = req.params;
+  const result = await UserService.searchByUidFromDB(Uid)
+  if (!result) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "No User Found With THis Id");
+  }
+  sendResponse(res, {
+    code : StatusCodes.OK,
+    message : "User Found Successfully!",
+    data : result
+  })
+})
+
 export const UserController = {
   createUser,
   getAllUsers,
@@ -387,6 +400,6 @@ export const UserController = {
   getSingleUserById,
   createAdmin,
   createManualUser,
-  createAnalyst
-
+  createAnalyst,
+  searchByUid
 };

@@ -13,5 +13,7 @@ export type TFileUpload = Document & {
   category: string;  // Category is a simple string now
   fileType: FileType; // Type of the file (video or pdf)
   fileUrl: string;  // URL or file path of the uploaded file
+  viewCount: number;  
+  videoDuration: string;  
   thumbnailUrl: string;  // URL or file path of the uploaded file
 }

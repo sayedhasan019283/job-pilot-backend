@@ -24,6 +24,12 @@ const fileUploadSchema = new Schema<TFileUpload>({
   fileUrl: {
     type: String,
   },
+  viewCount: {
+    type: Number,
+  },
+  videoDuration: {
+    type: String,
+  },
   thumbnailUrl: {
     type: String,
     required: [true, 'Thumbnail URL is required'],  // URL or path after file upload
