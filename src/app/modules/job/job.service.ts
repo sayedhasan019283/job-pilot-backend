@@ -4,6 +4,7 @@ import { TJob } from "./job.interface"
 import { JobModel } from "./job.model"
 import { User } from "../user/user.model";
 import { startOfDay, startOfWeek, startOfMonth, subDays, subWeeks, subMonths, endOfDay, endOfWeek, endOfMonth } from 'date-fns';
+import { Types } from 'mongoose';
 
 const createAppliedIntoDB = async (payload : TJob) => {
     const result = await JobModel.create(payload);
@@ -134,13 +135,121 @@ const dashboardDataFromDB = async (period: 'day' | 'week' | 'month') => {
     JobModel.find({ status: "Interview", createdAt: { $gte: previousRange.start, $lte: previousRange.end } }),
   ]);
 
-  console.log("userCountPrevious==>> ", userCountPrevious, "jobCountPrevious==>> ", jobCountPrevious, "appliedJobCountPrevious==>> ", appliedJobCountPrevious, "interviewScheduledJobsPrevious===>> ", interviewScheduledJobsPrevious)
+  // Log the counts for debugging
+  console.log("userCountCurrent==>> ", userCountCurrent);
+  console.log("userCountPrevious==>> ", userCountPrevious);
+  console.log("jobCountCurrent==>> ", jobCountCurrent);
+  console.log("jobCountPrevious==>> ", jobCountPrevious);
 
   // Calculate percentage change
   const calculatePercentageChange = (current: number, previous: number) => {
-    if (previous === 0) return current === 0 ? 0 : 100;
+    // If both current and previous are 0, there is no change
+    if (previous === 0 && current === 0) {
+      return 0;  // No change
+    }
+    // If previous is 0 and current is not 0, the change is 100%
+    if (previous === 0 && current !== 0) {
+      return 100; // 100% increase
+    }
+    // Standard calculation for percentage change
     return ((current - previous) / previous) * 100;
   };
+  console.log("userCountCurrent==> In Below> ", userCountPrevious);
+  return {
+    userCountCurrent,
+    jobCountCurrent,
+    appliedJobCountCurrent,
+    interviewScheduledJobsCurrent,
+    userCountPercentageChange: calculatePercentageChange(userCountCurrent, userCountPrevious),
+    jobCountPercentageChange: calculatePercentageChange(jobCountCurrent, jobCountPrevious),
+    appliedJobCountPercentageChange: calculatePercentageChange(appliedJobCountCurrent, appliedJobCountPrevious),
+    interviewScheduledJobsPercentageChange: calculatePercentageChange(interviewScheduledJobsCurrent, interviewScheduledJobsPrevious.length),
+  };
+};
+
+const dashboardAllDataNoTimePeriodFromDB = async () => {
+  // Get counts for the current period (all time)
+  const [userCountCurrent, jobCountCurrent, appliedJobCountCurrent, interviewScheduledJobsCurrent] = await Promise.all([
+    User.countDocuments(), // Count all users (no time range filter)
+    JobModel.countDocuments(), // Count all jobs (no time range filter)
+    JobModel.countDocuments({ status: "Applied" }), // Count all applied jobs
+    (await JobModel.find({ status: "Interview" })).length, // Count all interview-scheduled jobs
+  ]);
+
+  // Calculate percentage change (using dummy previous values for now as there is no previous period concept here)
+  const calculatePercentageChange = (current: number, previous: number) => {
+    if (previous === 0 && current === 0) {
+      return 0;  // No change
+    }
+    if (previous === 0 && current !== 0) {
+      return 100; // 100% increase
+    }
+    return ((current - previous) / previous) * 100; // Standard percentage change formula
+  };
+
+  // Returning data (no previous period concept here)
+  return {
+    userCountCurrent,
+    jobCountCurrent,
+    appliedJobCountCurrent,
+    interviewScheduledJobsCurrent,
+    userCountPercentageChange: calculatePercentageChange(userCountCurrent, 0), // Since no previous data is available, assuming 0 as previous
+    jobCountPercentageChange: calculatePercentageChange(jobCountCurrent, 0),
+    appliedJobCountPercentageChange: calculatePercentageChange(appliedJobCountCurrent, 0),
+    interviewScheduledJobsPercentageChange: calculatePercentageChange(interviewScheduledJobsCurrent, 0),
+  };
+};
+
+
+const dashboardDataFromSpecificMonth = async (month: number, year: number) => {
+  // Get the start and end date for the given month and year
+  const currentRangeStart = new Date(year, month - 1, 1); // Month is 0-based, so subtract 1
+  const currentRangeEnd = new Date(year, month, 0); // The last day of the month
+
+  // Get the previous month
+  let previousMonth = month - 1;
+  let previousYear = year;
+
+  if (previousMonth === 0) {
+    previousMonth = 12; // December
+    previousYear -= 1;
+  }
+
+  // Get the start and end date for the previous month
+  const previousRangeStart = new Date(previousYear, previousMonth - 1, 1); 
+  const previousRangeEnd = new Date(previousYear, previousMonth, 0);
+
+  // Get counts for the specified month
+  const [userCountCurrent, jobCountCurrent, appliedJobCountCurrent, interviewScheduledJobsCurrent] = await Promise.all([
+    User.countDocuments({ createdAt: { $gte: currentRangeStart, $lte: currentRangeEnd } }),
+    JobModel.countDocuments({ createdAt: { $gte: currentRangeStart, $lte: currentRangeEnd } }),
+    JobModel.countDocuments({ status: "Applied", createdAt: { $gte: currentRangeStart, $lte: currentRangeEnd } }),
+    (await JobModel.find({ status: "Interview", createdAt: { $gte: currentRangeStart, $lte: currentRangeEnd } })).length,
+  ]);
+
+  // Get counts for the previous month
+  const [userCountPrevious, jobCountPrevious, appliedJobCountPrevious, interviewScheduledJobsPrevious] = await Promise.all([
+    User.countDocuments({ createdAt: { $gte: previousRangeStart, $lte: previousRangeEnd } }),
+    JobModel.countDocuments({ createdAt: { $gte: previousRangeStart, $lte: previousRangeEnd } }),
+    JobModel.countDocuments({ status: "Applied", createdAt: { $gte: previousRangeStart, $lte: previousRangeEnd } }),
+    JobModel.find({ status: "Interview", createdAt: { $gte: previousRangeStart, $lte: previousRangeEnd } }),
+  ]);
+
+ // Calculate percentage change
+  const calculatePercentageChange = (current: number, previous: number) => {
+    // If both current and previous are 0, there is no change
+    if (previous === 0 && current === 0) {
+      return 0;  // No change
+    }
+    // If previous is 0 and current is not 0, the change is 100%
+    if (previous === 0 && current !== 0) {
+      return 100; // 100% increase
+    }
+    // Standard calculation for percentage change
+    return ((current - previous) / previous) * 100;
+  };
+
+
 
   return {
     userCountCurrent,
@@ -154,6 +263,43 @@ const dashboardDataFromDB = async (period: 'day' | 'week' | 'month') => {
   };
 };
 
+const getUserJobData = async (userId: string) => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error('Invalid userId');
+  }
+
+  const oid = new Types.ObjectId(userId);
+
+  // Aggregate counts per status
+  const countsAgg = await JobModel.aggregate<{ _id: string; count: number }>([
+    { $match: { userId: oid } },
+    { $group: { _id: '$status', count: { $sum: 1 } } },
+  ]);
+
+  // Default status counts
+  const base = {
+    Applied: 0,
+    Shortlisted: 0,
+    Rejected: 0,
+    Interview: 0,
+    Offers: 0,
+  };
+
+  // Cast _id to keyof base to ensure it matches one of the valid statuses
+  countsAgg.forEach(row => {
+    if (row._id in base) {
+      base[row._id as keyof typeof base] = row.count;
+    }
+  });
+
+  const total = Object.values(base).reduce((a, b) => a + b, 0);
+
+  // Return both status counts and full job data
+  const jobs = await JobModel.find({ userId: oid }).sort({ appliedDate: -1 }).lean();
+
+  return { userId, total, counts: base, jobs };
+};
+
 
 export const jobService = {
     createAppliedIntoDB,
@@ -163,5 +309,8 @@ export const jobService = {
     deleteAppliedJobFromDB,
     filterByStatusFromDB,
     filterByStatusForSingleUserFromDB,
-    dashboardDataFromDB
+    dashboardDataFromDB,
+    dashboardDataFromSpecificMonth,
+    getUserJobData,
+    dashboardAllDataNoTimePeriodFromDB
 }

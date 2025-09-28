@@ -3,6 +3,7 @@ import catchAsync from "../../../shared/catchAsync";
 import { jobService } from "./job.service";
 import sendResponse from "../../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
+import ApiError from "../../../errors/ApiError";
 
 const createAppliedJob = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
     console.log( req.file)
@@ -108,21 +109,64 @@ const deleteAppliedJob = catchAsync(async (req : Request , res : Response , next
 //     res.status(StatusCodes.OK).json({ success: true, data: result });
 // });
 
-const  dashboardData = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
-    const {period} = req.params;
-  if (['day', 'week', 'month'].includes(period)) {
+const dashboardData = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const {period} = req.query;
+    console.log('..........' ,period)
+  // Ensure 'period' is a string and is one of 'day', 'week', or 'month'
+  if (typeof period === 'string' && ['day', 'week', 'month'].includes(period)) {
     const result = await jobService.dashboardDataFromDB(period as 'day' | 'week' | 'month');
-    sendResponse(res , {
+    sendResponse(res, {
+      code: StatusCodes.OK,
+      message: 'Your dashboard data retrieved successfully',
+      data: result,
+    });
+  } else {
+
+    const result = await jobService.dashboardAllDataNoTimePeriodFromDB();
+    sendResponse(res, {
+      code: StatusCodes.BAD_REQUEST,
+      message: 'Your dashboard data retrieved successfully".',
+      data : result
+    });
+  }
+});
+
+const dashboardDataFromSpecificMonth = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    // Extract month and year from query parameters
+    const { month, year } = req.query;
+
+    // Convert month and year to numbers
+    const monthNumber = Number(month);  // Convert to number
+    const yearNumber = Number(year);    // Convert to number
+
+    // Ensure the month and year are valid numbers
+    if (isNaN(monthNumber) || isNaN(yearNumber)) {
+        return next(new Error("Invalid month or year"));
+    }
+
+    // Pass the numbers to the service
+    const result = await jobService.dashboardDataFromSpecificMonth(monthNumber, yearNumber);
+
+    // Send the response
+    sendResponse(res, {
+        code: StatusCodes.OK,
+        message: "Your dashboard data fetched successfully",
+        data: result
+    });
+});
+
+const getUserJobData = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const {id} = req.user
+    console.log(req.user)
+    const result = await jobService.getUserJobData(id);
+    if (!result) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!")
+    } 
+    sendResponse(res, {
         code : StatusCodes.OK,
-        message : "your dashboard data get successfully",
+        message : "All Data Get Successfully.",
         data : result
     })
-  } else {
-    sendResponse(res , {
-        code : StatusCodes.BAD_REQUEST,
-        message : 'Invalid period, must be one of "day", "week", or "month".',
-    })
-  }
 })
 
 export const jobController = {
@@ -132,5 +176,7 @@ export const jobController = {
     updateJobApplied,
     deleteAppliedJob,
     dashboardData,
-    readAllJobAppliedForSingleUser
+    readAllJobAppliedForSingleUser,
+    dashboardDataFromSpecificMonth,
+    getUserJobData
 }

@@ -52,9 +52,20 @@ router.delete(
 // );
 
 router.get(
-    '/dashboard-data/:period',
+    '/dashboard-data', // period in query
     auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
     jobController.dashboardData
+)
+router.get(
+    '/dashboard-data-for-specific-month',
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
+    jobController.dashboardDataFromSpecificMonth
+)
+
+router.get(
+    '/get-user-dashboard',
+    auth(USER_ROLE.user),
+    jobController.getUserJobData
 )
 
 export const JobRouter = router

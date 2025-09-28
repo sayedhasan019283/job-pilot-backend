@@ -18,6 +18,8 @@ const jobSchema = new Schema<TJob>({
   jdLink: { type: String, required: true },
 });
 
+// speeds up match + group by
+jobSchema.index({ userId: 1, status: 1 });
 // Create the JobModel
 export const JobModel = model<TJob>('Job', jobSchema);
 
