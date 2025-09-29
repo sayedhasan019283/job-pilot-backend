@@ -96,14 +96,14 @@ const createAdmin = catchAsync(async (req: Request, res: Response, next: NextFun
   
   }
 
-  // Generate UserId (Auto-increment 4-digit number)
-  const lastUser = await User.findOne().sort({ userId: -1 });
-  let newUserId = '0001'; 
+ // Generate UserId (Auto-increment 5-digit number)
+const lastUser = await User.findOne().sort({ userId: -1 });
+let newUserId = '00001'; // Default starting value
 
-  if (lastUser) {
-    const lastUserId = parseInt(lastUser.userId, 10);
-    newUserId = (lastUserId + 1).toString().padStart(4, '0');
-  }
+if (lastUser) {
+  const lastUserId = parseInt(lastUser.userId, 10);
+  newUserId = (lastUserId + 1).toString().padStart(5, '0');
+}
 
   userData.userId = newUserId;
 

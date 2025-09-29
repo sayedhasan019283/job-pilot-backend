@@ -9,7 +9,7 @@ const jobSchema = new Schema<TJob>({
   adminId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   status: {
      type: String,
-     enum : ["Applied", "Shortlisted", "Rejected", "Interview"],
+     enum : ["Applied", "Shortlisted", "Rejected", "Interview", "Offer"],
     required: true, 
     default : 'Applied'
   },
