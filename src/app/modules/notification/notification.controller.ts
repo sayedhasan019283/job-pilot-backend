@@ -3,8 +3,6 @@ import admin from '../../../config/firebase';
 import { User } from '../user/user.model';
 import { NotificationModel } from './notification.model';
 
-
-
 // Send Push Notification function
 export const sendPushNotification = async (userId: string, text: string, title : string) => {
   try {
