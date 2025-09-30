@@ -1,7 +1,13 @@
 
+import { NextFunction, Request, Response } from 'express';
 import admin from '../../../config/firebase';
+import catchAsync from '../../../shared/catchAsync';
 import { User } from '../user/user.model';
 import { NotificationModel } from './notification.model';
+import { notificationService } from './notification.service';
+import ApiError from '../../../errors/ApiError';
+import { StatusCodes } from 'http-status-codes';
+import sendResponse from '../../../shared/sendResponse';
 
 // Send Push Notification function
 export const sendPushNotification = async (userId: string, text: string, title : string) => {
@@ -43,3 +49,20 @@ export const sendPushNotification = async (userId: string, text: string, title :
     throw error;
   }
 };
+
+const getNotificationUnderUser = catchAsync(async (req : Request, res : Response, next : NextFunction) => {
+    const {id} = req.user;
+    const result = await notificationService.getNotificationUnderUser(id);
+    if (!result) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "No Notification Found!")
+    }
+    sendResponse(res, {
+        code : StatusCodes.OK,
+        message : "Get All Notification For this user.",
+        data : result
+    })
+})
+
+export const notificationController = {
+    getNotificationUnderUser
+}
