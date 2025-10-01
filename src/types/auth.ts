@@ -18,3 +18,11 @@ export interface IChangePassword {
   currentPassword: string;
   newPassword: string;
 }
+export interface IUserPayload {
+  id: string;       // Assuming the `id` is a string representing the user ID
+  email: string;    // The user's email
+  role: string;     // The user's role (e.g., 'user', 'admin', etc.)
+  iat: number;      // The issued-at timestamp (JWT field)
+  exp: number;      // The expiration timestamp (JWT field)
+}
+

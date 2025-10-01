@@ -13,6 +13,7 @@ import {
 import { sendResetPasswordEmail } from '../../../helpers/emailHelper';
 import { Secret } from 'jsonwebtoken';
 import createOtp from './createOtp';
+import {  Types } from 'mongoose';
 
 // Helper function for user status validation
 const validateUserStatus = (user: any) => {
@@ -202,7 +203,8 @@ const resetPassword = async (payload: IResetPassword) => {
   return user;
 };
 
-const changePassword = async (userId: string, payload: IChangePassword) => {
+const changePassword = async (userId: Types.ObjectId, payload: IChangePassword) => {
+  console.log("userId From service" ,userId)
   const user = await User.findById(userId).select('+password');
   if (!user) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'User not found.');
@@ -261,6 +263,32 @@ const refreshToken = async (refreshToken: string) => {
     accessToken,
   };
 };
+
+// Service to handle saving or updating the user in the database
+const findOrCreateUser = async (profile: { id: any; emails: { value: any; }[]; displayName: any; name: { givenName: any; familyName: any; }; photos: { value: any; }[]; }, provider: any) => {
+  // Check if the user already exists in the database
+  const existingUser = await User.findOne({ providerId: profile.id, provider });
+  
+  if (existingUser) {
+    // If the user exists, return the existing user
+    return existingUser;
+  }
+
+  // Otherwise, create a new user record
+  const newUser = new User({
+    provider,
+    providerId: profile.id,
+    email: profile.emails[0].value, // Assuming email is available
+    displayName: profile.displayName || `${profile.name.givenName} ${profile.name.familyName}`,
+    profilePicture: profile.photos ? profile.photos[0].value : null
+  });
+  console.log(newUser)
+  // await newUser.save();
+  return newUser;
+}
+
+
+
 export const AuthService = {
   loginIntoDB,
   verifyEmail,
@@ -269,5 +297,6 @@ export const AuthService = {
   resetPassword,
   changePassword,
   refreshToken,
+  findOrCreateUser
 }; 
   
