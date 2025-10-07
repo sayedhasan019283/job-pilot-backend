@@ -26,6 +26,7 @@ const fileUploadSchema = new Schema<TFileUpload>({
   },
   viewCount: {
     type: Number,
+    default : 0,
   },
   videoDuration: {
     type: String,

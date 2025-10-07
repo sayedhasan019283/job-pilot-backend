@@ -13,15 +13,20 @@ const createLibraryItem = catchAsync(async (req: Request, res: Response, next: N
         thumbnailUrl?: { filename: string }[]; 
     };
 
+    // Handle main file (video)
     if (files?.fileUrl && files.fileUrl[0]?.filename) {
-        // Correct path from project root
-        const filePath = path.resolve(process.cwd(), 'uploads', 'library', files.fileUrl[0].filename);
+        const fileName = files.fileUrl[0].filename;
+
+        // Set the file URL (this will be stored in DB or sent to frontend)
+        payload.fileUrl = `/uploads/library/${fileName}`;
+
+        // Get absolute file path to read locally
+        const filePath = path.resolve(process.cwd(), 'uploads', 'library', fileName);
 
         console.log('Resolved File Path:', filePath);
 
         if (fs.existsSync(filePath)) {
             console.log('File exists at path:', filePath);
-
             try {
                 const durationInSeconds = await getVideoDurationInSeconds(filePath);
                 const minutes = Math.floor(durationInSeconds / 60);
@@ -37,14 +42,21 @@ const createLibraryItem = catchAsync(async (req: Request, res: Response, next: N
         }
     }
 
+    // Handle thumbnail
     if (files?.thumbnailUrl && files.thumbnailUrl[0]?.filename) {
         payload.thumbnailUrl = `/uploads/library/${files.thumbnailUrl[0].filename}`;
     }
 
+    // Save to DB
     const result = await libraryService.createLibraryItem(payload);
 
-    sendResponse(res, { code: 201, message: "Library Created successfully.", data: result });
+    sendResponse(res, { 
+        code: 201, 
+        message: "Library Created successfully.", 
+        data: result 
+    });
 });
+
 
 
 const readAllCreateLibraryItem = async (req : Request, res : Response, next : NextFunction) => {

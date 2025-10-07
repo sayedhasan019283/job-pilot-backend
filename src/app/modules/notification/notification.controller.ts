@@ -13,7 +13,9 @@ import sendResponse from '../../../shared/sendResponse';
 export const sendPushNotification = async (userId: string, text: string, title : string) => {
   try {
     // Find the user by ID
+    console.log("Hit Hear ", userId)
     const user = await User.findById(userId);
+    console.log(userId)
     if (!user) {
       throw new Error('User not found');
     }

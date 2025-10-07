@@ -41,7 +41,7 @@ router
       maxCount:1
     },
     ]),
-    // auth(USER_ROLE.superAdmin),
+    auth(USER_ROLE.superAdmin),
     UserController.createAdmin
   )
   router.post(
@@ -56,7 +56,7 @@ router
       maxCount:1
     },
     ]),
-    // auth(USER_ROLE.superAdmin),
+    auth(USER_ROLE.superAdmin),
     UserController.createAnalyst
   )
   router.post(
@@ -71,7 +71,7 @@ router
       maxCount:1
     },
     ]),
-    // auth(USER_ROLE.superAdmin),
+    auth(USER_ROLE.superAdmin, USER_ROLE.admin),
     UserController.createManualUser
   )
 router.post(

@@ -5,13 +5,19 @@ import { JobModel } from "./job.model"
 import { User } from "../user/user.model";
 import { startOfDay, startOfWeek, startOfMonth, subDays, subWeeks, subMonths, endOfDay, endOfWeek, endOfMonth } from 'date-fns';
 import { Types } from 'mongoose';
+import { sendPushNotification } from "../notification/notification.controller";
 
 const createAppliedIntoDB = async (payload : TJob) => {
     const result = await JobModel.create(payload);
     if (!result) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "Job assign create failed")
     }
-    
+    const objectIdUserId = new Types.ObjectId(result.userId);
+
+// Convert ObjectId to string
+const userIdString = objectIdUserId.toString();
+    sendPushNotification(userIdString, "Tren", "djfhdfhkldf")
+    console.log("from hear" ,result.userId)
     return result;
 }
 

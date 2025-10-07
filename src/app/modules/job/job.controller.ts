@@ -128,7 +128,7 @@ const dashboardData = catchAsync(async (req: Request, res: Response, next: NextF
 
     const result = await jobService.dashboardAllDataNoTimePeriodFromDB();
     sendResponse(res, {
-      code: StatusCodes.BAD_REQUEST,
+      code: StatusCodes.OK,
       message: 'Your dashboard data retrieved successfully".',
       data : result
     });
