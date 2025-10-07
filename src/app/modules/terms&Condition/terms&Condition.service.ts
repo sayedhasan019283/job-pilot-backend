@@ -3,7 +3,7 @@ import { TermsConditionModel } from "./terms&Condition.model";
 
 
 const updateTermsConditionFromDB = async (payload : TTermsCondition, id : string) => {
-    const result = await TermsConditionModel.findByIdAndUpdate(id, payload);
+    const result = await TermsConditionModel.findByIdAndUpdate(id, payload, {new : true});
     return result
 } 
 

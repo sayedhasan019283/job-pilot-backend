@@ -16,4 +16,4 @@ router.get(
     termsConditionController.readTermsCondition
 )
 
-export const privacyPolicyRouter = router;
+export const termsConditionRouter = router;

@@ -20,6 +20,7 @@ router.post(
 
 router.patch(
     '/update/:RId',
+    upload.single('imageUrl'),
     auth(USER_ROLE.admin, USER_ROLE.superAdmin),
     recruitersController.updateRecruiter
 )
@@ -30,7 +31,7 @@ router.get(
     recruitersController.readAllRecruiter
 )
 router.get(
-    '/get-single',
+    '/get-single/:RId',
     auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.analyst, USER_ROLE.user),
     recruitersController.readSingleRecruiter
 )

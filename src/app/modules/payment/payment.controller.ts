@@ -20,7 +20,7 @@ const createPayment = catchAsync(async (req : Request, res : Response, next : Ne
 })
 
 const getAllPayment = catchAsync(async (req : Request, res : Response, next : NextFunction) => {
-    const result = paymentService.getAllPaymentFromDB();
+    const result = await paymentService.getAllPaymentFromDB();
     if (!result || (await result).length === 0) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!")
     }
@@ -32,7 +32,7 @@ const getAllPayment = catchAsync(async (req : Request, res : Response, next : Ne
 })
 const getSinglePayment = catchAsync(async (req : Request, res : Response, next : NextFunction) => {
     const {paymentId} = req.params;
-    const result = paymentService.getSinglePaymentFromDB(paymentId);
+    const result = await paymentService.getSinglePaymentFromDB(paymentId);
     if (!result) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!")
     }
@@ -61,5 +61,4 @@ export const paymentController = {
     getAllPayment,
     getSinglePayment,
     getAllPaymentUnderUser
-
 }

@@ -11,6 +11,7 @@ const createAppliedIntoDB = async (payload : TJob) => {
     if (!result) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "Job assign create failed")
     }
+    
     return result;
 }
 

@@ -33,10 +33,15 @@ export type TUser = {
   subEndDate?: Date | null;
   otpCountDown?: number | null; 
   serviceCount? : number;
+  Applied : boolean,
+  Shortlisted : boolean,
+  Rejected : boolean,
+  Interview : boolean,
+  Offer : boolean,
   createdAt: Date;
   updatedAt: Date;
 };
-
+// "Applied", "Shortlisted", "Rejected", "Interview", "Offer"
 export interface UserModal extends Model<TUser> {
   paginate: (
     filter: object,

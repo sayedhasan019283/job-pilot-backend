@@ -80,9 +80,51 @@ const getOneItemById = catchAsync(async (req : Request, res : Response, next : N
     })
 })
 
+const updateLibraryItem = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const {LId} = req.params
+    const payload = req.body;
+    const files = req.files as { 
+        fileUrl?: { filename: string }[]; 
+        thumbnailUrl?: { filename: string }[]; 
+    };
+
+    if (files?.fileUrl && files.fileUrl[0]?.filename) {
+        // Correct path from project root
+        const filePath = path.resolve(process.cwd(), 'uploads', 'library', files.fileUrl[0].filename);
+
+        console.log('Resolved File Path:', filePath);
+
+        if (fs.existsSync(filePath)) {
+            console.log('File exists at path:', filePath);
+
+            try {
+                const durationInSeconds = await getVideoDurationInSeconds(filePath);
+                const minutes = Math.floor(durationInSeconds / 60);
+                const seconds = Math.floor(durationInSeconds % 60);
+                payload.videoDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            } catch (err) {
+                console.error('Error fetching video duration:', err);
+                payload.videoDuration = null;
+            }
+        } else {
+            console.error('File does not exist at path:', filePath);
+            payload.videoDuration = null;
+        }
+    }
+
+    if (files?.thumbnailUrl && files.thumbnailUrl[0]?.filename) {
+        payload.thumbnailUrl = `/uploads/library/${files.thumbnailUrl[0].filename}`;
+    }
+
+    const result = await libraryService.updateLibraryItem(LId ,payload);
+
+    sendResponse(res, { code: 201, message: "Library update successfully.", data: result });
+});
+
 export const libraryController = {
     createLibraryItem,
     readAllCreateLibraryItem,
     deleteLibraryItem,
-    getOneItemById
+    getOneItemById,
+    updateLibraryItem
 }

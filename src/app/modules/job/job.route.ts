@@ -36,6 +36,7 @@ router.get(
 ) 
 router.patch(
     '/update/:appliedJobId',
+    upload.single('companyLogo'),
     auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
     jobController.updateJobApplied
 )

@@ -41,7 +41,7 @@ const getSinglePaymentFromDB = async (id : string) => {
 } 
 
 const getAllPaymentUnderUserFromDB = async (userId  : string) => {
-    const result = await PaymentModel.find({userId : userId});
+    const result = await PaymentModel.find({userId : userId}).populate('userId');
     return result
 }
 

@@ -78,6 +78,10 @@ const readSingleJobApplied = catchAsync(async (req : Request , res : Response , 
 const updateJobApplied = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
     const payload = req.body;
     const {appliedJobId} = req.params
+        if (req.file) {
+         payload.companyLogo =  `/uploads/jobs/${req.file.filename}`
+    }
+    console.log(payload)
     const result = await jobService.updateJobAppliedIntoDB(appliedJobId , payload);
     sendResponse(res , {
         code : StatusCodes.OK,

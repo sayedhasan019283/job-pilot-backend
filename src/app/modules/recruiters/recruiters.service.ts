@@ -16,6 +16,7 @@ const getSingleRecruiters = async (id : string) => {
 }
 
 const updateRecruiter = async (id : string, payload : Partial<TRecruiter>) => {
+    console.log(payload)
     const result = await RecruiterModel.findByIdAndUpdate(id , payload, {new : true});
     return result;
 } 

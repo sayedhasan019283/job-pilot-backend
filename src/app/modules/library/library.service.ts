@@ -48,9 +48,19 @@ const getOneItemByIdFromDB = async (itemId : string) => {
 
 }
 
+const updateLibraryItem = async (LId : string ,payload : Partial<TFileUpload>) => {
+    const result = await LibraryModel.findByIdAndUpdate(LId ,payload, {new : true});
+    if (!result ) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "Library is not Created successfully!")
+    }
+    return result 
+}
+
+
 export const libraryService = {
     createLibraryItem,
     readAllCreateLibraryItem,
     deleteLibraryItem,
-    getOneItemByIdFromDB
+    getOneItemByIdFromDB,
+    updateLibraryItem
 }

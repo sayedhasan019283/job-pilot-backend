@@ -2,7 +2,7 @@ import { TPrivacyPolicy } from "./privacy&Policy.interface";
 import { PrivacyPolicyModel } from "./privacy&Policy.model";
 
 const updatePrivacyPolicyFromDB = async (payload : TPrivacyPolicy, id : string) => {
-    const result = await PrivacyPolicyModel.findByIdAndUpdate(id, payload);
+    const result = await PrivacyPolicyModel.findByIdAndUpdate(id, payload, {new : true});
     return result
 } 
 

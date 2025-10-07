@@ -129,6 +129,26 @@ const userSchema = new Schema<TUser, UserModal>(
       default: null,
       required: [false, 'FCM token is optional'],
     },
+    Applied : {
+      type : Boolean,
+      default : true
+    },
+    Shortlisted : {
+      type : Boolean,
+      default : true
+    },
+    Rejected : {
+      type : Boolean,
+      default : true
+    },
+    Interview : {
+      type : Boolean,
+      default : true
+    },
+    Offer : {
+      type : Boolean,
+      default : true
+    }
   },
   {
     timestamps: true,
@@ -136,7 +156,7 @@ const userSchema = new Schema<TUser, UserModal>(
     toObject: { virtuals: true },
   }
 );
-
+// "Applied", "Shortlisted", "Rejected", "Interview", "Offer"
 userSchema.virtual('fullName').get(function () {
   return `${this.firstName} ${this.lastName}`;
 });

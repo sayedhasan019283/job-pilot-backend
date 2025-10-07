@@ -48,6 +48,22 @@ router.get(
   libraryController.getOneItemById
 )
 
+router.patch(
+    '/update/:LId',
+    // validateRequest(libraryValidation.fileUploadSchema),
+    auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
+     upload.fields([
+    {
+      name: "fileUrl",
+      maxCount: 1
+    },
+    {
+      name: "thumbnailUrl",
+      maxCount:1
+    }
+  ]),
+    libraryController.updateLibraryItem
+)
 
 
 export const LibraryRoute = router;

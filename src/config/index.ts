@@ -15,7 +15,7 @@ const envVarsSchema = z.object({
       invalid_type_error: 'PORT must be a string',
       required_error: 'PORT is required',
     })
-    .default('8080'),
+    .default('5673'),
   SOCKET: z
     .string({
       invalid_type_error: 'SOCKET must be a string',

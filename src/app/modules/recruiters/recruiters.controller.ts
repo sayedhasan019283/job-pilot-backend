@@ -17,7 +17,7 @@ if (lastRecruiter) {
   newRecruiterId = `R-${(lastUserId + 1).toString().padStart(5, '0')}`; // Add 'R-' and pad the number to 5 digits
 }
 
-payload.userId = newRecruiterId;
+payload.RecID = newRecruiterId;
 
 if (req.file) {
          payload.imageUrl =  `/uploads/recruiters/${req.file.filename}`
@@ -59,8 +59,11 @@ const readSingleRecruiter = catchAsync(async (req : Request, res : Response, nex
 })
 
 const updateRecruiter = catchAsync(async (req : Request, res : Response, next : NextFunction) => {
-    const {RId} = req.params
     const payload = req.body
+    const {RId} = req.params
+    if (req.file) {
+         payload.imageUrl =  `/uploads/recruiters/${req.file.filename}`
+    }
     const result = await recruitersService.updateRecruiter(RId, payload);
     if (!result) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "Update unsuccessful!")
