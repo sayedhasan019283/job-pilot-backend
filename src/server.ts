@@ -25,6 +25,8 @@ async function main() {
           `♻️  Application listening on port http://${config.backendIp}:${port}/test`
         )
       );
+    
+
     });
     //socket
     const io = new Server(server, {

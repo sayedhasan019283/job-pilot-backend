@@ -1,17 +1,23 @@
 import { TPrivacyPolicy } from "./privacy&Policy.interface";
 import { PrivacyPolicyModel } from "./privacy&Policy.model";
 
-const updatePrivacyPolicyFromDB = async (payload : TPrivacyPolicy, id : string) => {
-    const result = await PrivacyPolicyModel.findByIdAndUpdate(id, payload, {new : true});
-    return result
+const createPrivacyPolicyInDB = async (payload: TPrivacyPolicy) => {
+    const result = await PrivacyPolicyModel.create(payload);
+    return result;
+}
+
+const updatePrivacyPolicyFromDB = async (payload: TPrivacyPolicy, id: string) => {
+    const result = await PrivacyPolicyModel.findByIdAndUpdate(id, payload, {new: true});
+    return result;
 } 
 
 const readPrivacyPolicyFromDB = async () => {
     const result = await PrivacyPolicyModel.find({});
-    return result
+    return result;
 }
 
 export const privacyPolicyService = {
+    createPrivacyPolicyInDB,
     updatePrivacyPolicyFromDB,
     readPrivacyPolicyFromDB
 }

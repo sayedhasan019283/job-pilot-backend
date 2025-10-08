@@ -10,6 +10,7 @@ const recruiterSchema = new Schema({
   phoneNumber: { type: String, required: true },
   linkedin: { type: String, required: true },
   imageUrl: { type: String, required: false },
+  email: { type: String, required: false },
 }, { timestamps: true });
 
 // Create Mongoose Model
