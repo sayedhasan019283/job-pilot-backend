@@ -4,7 +4,7 @@ import { jobService } from "./job.service";
 import sendResponse from "../../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../../errors/ApiError";
-
+import { USER_ROLE } from "./user.constant"; 
 const createAppliedJob = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
     console.log( req.file)
     const payload = req.body;
@@ -19,6 +19,32 @@ const createAppliedJob = catchAsync(async (req : Request , res : Response , next
         data : result
     })
 })
+const getJobStatusPercentage = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const { userId } = req.query; // Optional: get specific user's data
+  const currentUserId = req.user.id; // From auth middleware
+  
+  let result;
+  
+  // If user has 'user' role, only show their data
+  if (req.user.role === USER_ROLE.user) {
+    result = await jobService.getJobStatusPercentage(currentUserId);
+  } 
+  // If admin/analyst and specific userId provided, show that user's data
+  else if (userId && typeof userId === 'string') {
+    result = await jobService.getJobStatusPercentage(userId);
+  }
+  // Otherwise show all data (for admins)
+  else {
+    result = await jobService.getJobStatusPercentage();
+  }
+
+  sendResponse(res, {
+    code: StatusCodes.OK,
+    message: "Job status percentages retrieved successfully",
+    data: result,
+  });
+});
+
 
 const readAllJobApplied = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     let { status, page, limit } = req.query;
@@ -176,7 +202,7 @@ const getUserJobData = catchAsync(async (req: Request, res: Response, next: Next
 export const jobController = {
     createAppliedJob,
     readAllJobApplied,
-    readSingleJobApplied,
+    readSingleJobApplied, getJobStatusPercentage,
     updateJobApplied,
     deleteAppliedJob,
     dashboardData,

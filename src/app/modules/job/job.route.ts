@@ -62,7 +62,11 @@ router.get(
     auth(USER_ROLE.admin , USER_ROLE.analyst, USER_ROLE.superAdmin),
     jobController.dashboardDataFromSpecificMonth
 )
-
+router.get(
+  '/status-percentage',
+  auth(USER_ROLE.admin, USER_ROLE.analyst, USER_ROLE.superAdmin, USER_ROLE.user),
+  jobController.getJobStatusPercentage
+);
 router.get(
     '/get-user-dashboard',
     auth(USER_ROLE.user),

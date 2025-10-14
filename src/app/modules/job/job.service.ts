@@ -5,7 +5,98 @@ import { JobModel } from "./job.model"
 import { User } from "../user/user.model";
 import { startOfDay, startOfWeek, startOfMonth, subDays, subWeeks, subMonths, endOfDay, endOfWeek, endOfMonth } from 'date-fns';
 import { Types } from 'mongoose';
-import { sendPushNotification } from "../notification/notification.controller";
+
+
+
+const getJobStatusPercentage = async (userId?: string) => {
+  let matchStage: any = {};
+  
+  // If userId is provided, filter by specific user
+  if (userId && Types.ObjectId.isValid(userId)) {
+    matchStage.userId = new Types.ObjectId(userId);
+  }
+
+  const result = await JobModel.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: '$status',
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: '$count' },
+        statuses: {
+          $push: {
+            status: '$_id',
+            count: '$count',
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        statuses: {
+          $map: {
+            input: '$statuses',
+            as: 'status',
+            in: {
+              status: '$$status.status',
+              count: '$$status.count',
+            },
+          },
+        },
+        total: 1,
+      },
+    },
+  ]);
+
+  // If no documents found, return default structure
+  if (result.length === 0) {
+    const defaultStatuses = ['Shortlisted', 'Interview', 'Rejected', 'Offers'];
+    return {
+      statuses: defaultStatuses.map(status => ({
+        status,
+        count: 0,
+        percentage: 0,
+      })),
+      total: 0,
+    };
+  }
+
+  // Calculate total excluding "Applied" status
+  const statusesWithoutApplied = result[0].statuses.filter((s: any) => s.status !== 'Applied');
+  const totalWithoutApplied = statusesWithoutApplied.reduce((sum: number, s: any) => sum + s.count, 0);
+
+  // Calculate percentages based on total without "Applied"
+  const statusesWithPercentage = result[0].statuses.map((s: any) => {
+    let percentage = 0;
+    
+    if (s.status !== 'Applied') {
+      // For non-Applied statuses, calculate percentage based on total without Applied
+      percentage = totalWithoutApplied > 0 ? (s.count / totalWithoutApplied) * 100 : 0;
+    }
+    // Applied status will have 0 percentage in this calculation
+    
+    return {
+      status: s.status,
+      count: s.count,
+      percentage: Math.round(percentage * 100) / 100, // Round to 2 decimal places
+    };
+  });
+
+  // Filter out Applied status if you don't want it in the response at all
+  const filteredStatuses = statusesWithPercentage.filter((s: any) => s.status !== 'Applied');
+
+  return {
+    statuses: filteredStatuses,
+    total: result[0].total,
+    totalWithoutApplied, // Optional: include this if needed
+  };
+};
 
 const createAppliedIntoDB = async (payload : TJob) => {
     const result = await JobModel.create(payload);
@@ -16,7 +107,7 @@ const createAppliedIntoDB = async (payload : TJob) => {
 
 // Convert ObjectId to string
 const userIdString = objectIdUserId.toString();
-    sendPushNotification(userIdString, "Tren", "djfhdfhkldf")
+  
     console.log("from hear" ,result.userId)
     return result;
 }
@@ -318,6 +409,6 @@ export const jobService = {
     filterByStatusForSingleUserFromDB,
     dashboardDataFromDB,
     dashboardDataFromSpecificMonth,
-    getUserJobData,
+    getUserJobData,getJobStatusPercentage,
     dashboardAllDataNoTimePeriodFromDB
 }

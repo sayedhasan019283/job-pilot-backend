@@ -40,6 +40,12 @@ export type TUser = {
   Offer : boolean,
   createdAt: Date;
   updatedAt: Date;
+  // Social login fields
+  authType?: 'local' | 'google' | 'facebook' | 'apple';
+  socialId?: string;
+  id:string;
+
+
 };
 // "Applied", "Shortlisted", "Rejected", "Interview", "Offer"
 export interface UserModal extends Model<TUser> {

@@ -1,5 +1,16 @@
 import { z } from 'zod';
 
+
+// Add this to your user.validation.ts
+export const deleteUserValidationSchema = z.object({
+  body: z.object({
+    password: z.string({
+      required_error: 'Password is required to delete account',
+    }).min(1, 'Password cannot be empty'),
+  }),
+});
+export type DeleteUserValidation = z.infer<typeof deleteUserValidationSchema>;
+
 const createUserValidationSchema = z.object({
   body: z.object({
     firstName: z
@@ -63,5 +74,5 @@ const updateUserValidationSchema = z.object({
 
 export const UserValidation = {
   createUserValidationSchema,
-  updateUserValidationSchema,
+  updateUserValidationSchema, deleteUserValidationSchema,
 };

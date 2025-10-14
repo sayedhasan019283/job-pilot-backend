@@ -4,9 +4,11 @@ import ApiError from "../../../errors/ApiError";
 import { StatusCodes } from "http-status-codes";
 import sendResponse from "../../../shared/sendResponse";
 import { termsConditionService } from "./terms&Condition.service";
+import { TermsConditionModel } from "./terms&Condition.model";
 
 const createTermsCondition = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const payload = req.body;
+     await TermsConditionModel.deleteMany({});
     const result = await termsConditionService.createTermsConditionInDB(payload);
     if (!result) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "Terms And Condition Not Created Successfully!");

@@ -1,10 +1,22 @@
-import  {  Document, Types } from 'mongoose';
+// notification.interface.ts
+import { Types } from 'mongoose';
 
+export type TNotificationType = 
+  | 'applied' 
+  | 'shortlisted' 
+  | 'interview' 
+  | 'offer' 
+  | 'info' 
+  | 'system';
 
-// Define TypeScript interface for the Notification model
-export type TNotification = Document & {
+export interface TNotification {
+  _id?: Types.ObjectId;
+  title: string;
   text: string;
-  userId: Types.ObjectId; // Referring to the User model
+  userId: Types.ObjectId;
+  type: TNotificationType;
+  read: boolean;
+  data?: Record<string, any>;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
-
-

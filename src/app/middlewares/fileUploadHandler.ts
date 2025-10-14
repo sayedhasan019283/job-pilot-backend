@@ -44,14 +44,17 @@ export default function fileUploadHandler(UPLOADS_FOLDER: string) {
       'image/heic',
       'image/heif',
       'video/mp4', 
-      'audio/mp3', 
+      'audio/mp3',   'application/pdf'
     ];
 
-    if (allowedTypes.includes(file.mimetype)) {
+     const fileExt = path.extname(file.originalname).toLowerCase();
+    const isPdfByExtension = fileExt === '.pdf';
+
+    if (allowedTypes.includes(file.mimetype) || isPdfByExtension) {
       cb(null, true); // Accept file
     } else {
-      console.error(`File rejected: ${file.originalname}`);
-      cb(new Error('Only jpg, jpeg, png, gif, and webp formats are allowed!'));
+      console.error(`File rejected: ${file.originalname} (MIME type: ${file.mimetype})`);
+      cb(new Error('Only jpg, jpeg, png, gif, webp, heic, heif, mp4, mp3, and pdf formats are allowed!'));
     }
   };
 

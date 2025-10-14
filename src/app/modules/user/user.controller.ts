@@ -5,7 +5,46 @@ import sendResponse from '../../../shared/sendResponse';
 import { UserService } from './user.service';
 import { User } from './user.model';
 import ApiError from '../../../errors/ApiError';
+// Add this to your user.controller.ts
+import { deleteUserValidationSchema } from './user.validation';
 
+
+
+const deleteUserWithPassword = catchAsync(async (req: Request, res: Response) => {
+  console.log('=== DELETE ACCOUNT REQUEST ===');
+  console.log('Full req.user object:', req.user);
+  console.log('req.user keys:', Object.keys(req.user || {}));
+  
+  // Try all possible user ID properties
+  const userId = req.user?.userId || req.user?.id || req.user?._id || req.user?.userid;
+  
+  console.log('Trying to extract userId:');
+  console.log('req.user.userId:', req.user?.userId);
+  console.log('req.user.id:', req.user?.id);
+  console.log('req.user._id:', req.user?._id);
+  console.log('Final extracted userId:', userId);
+  
+  if (!userId) {
+    console.log('❌ No user ID found in req.user');
+    throw new ApiError(401, 'User not authenticated');
+  }
+
+  const { password } = req.body;
+  console.log('Password from body:', password);
+
+  if (!password) {
+    throw new ApiError(400, 'Password is required to delete account');
+  }
+
+  const result = await UserService.deleteUserWithPassword(userId, password);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Account deleted successfully',
+    data: result,
+  });
+});
 const createUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const userData = req.body;
   console.log("userData controller ===========>>>>>>>>>" ,userData);
@@ -397,7 +436,7 @@ export const UserController = {
   fillUpUserDetails,
   deleteMyProfile,
   changeUserStatus,
-  getSingleUserById,
+  getSingleUserById,deleteUserWithPassword, 
   createAdmin,
   createManualUser,
   createAnalyst,

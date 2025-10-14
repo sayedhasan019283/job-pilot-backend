@@ -188,14 +188,51 @@ const searchByUidFromDB = async (Uid : string) => {
   return result;
 }
 
+// Add this to your existing user.service.ts
 
+//delete user with password confirmation
+const deleteUserWithPassword = async (
+  userId: string, 
+  password: string
+): Promise<TUser | null> => {
+  const user = await User.findById(userId).select('+password');
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User doesn't exist!");
+  }
+
+  // Check if user has local auth (has password)
+  if (user.authType === 'local') {
+    if (!password) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is required to delete account');
+    }
+
+    // Verify password
+    const isPasswordMatch = await User.isMatchPassword(password, user.password);
+    if (!isPasswordMatch) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Invalid password');
+    }
+  }
+
+  // Soft delete the user
+  return User.findByIdAndUpdate(
+    userId,
+    { 
+      status: 'Delete', 
+      isDeleted: true,
+      email: `deleted_${Date.now()}@deleted.com`, // Optional: anonymize email
+      phoneNumber: null, // Optional: remove personal data
+      fcmToken: null // Optional: remove device tokens
+    },
+    { new: true }
+  );
+};
 export const UserService = {
   createUserToDB,
   getAllUsersFromDB,
   getAllUsersByRoleFromDB,
   getSingleUserFromDB,
   getMyProfile,
-  updateMyProfile,
+  updateMyProfile, deleteUserWithPassword, 
   updateUserImage,
   fillUpUserDetails,
   deleteMyProfile,

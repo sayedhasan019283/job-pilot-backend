@@ -2,7 +2,7 @@ import express from 'express';
 import { UserController } from './user.controller';
 import auth from '../../middlewares/auth';
 import validateRequest from '../../middlewares/validateRequest';
-import { UserValidation } from './user.validation';
+import { deleteUserValidationSchema, UserValidation } from './user.validation';
 import fileUploadHandler from '../../middlewares/fileUploadHandler';
 import convertHeicToPngMiddleware from '../../middlewares/convertHeicToPngMiddleware';
 import { USER_ROLE } from './user.constant';
@@ -116,7 +116,12 @@ router.get(
   auth('admin'),
   UserController.getSingleUserFromDB
 );
-
+router.post(
+  '/delete-account',
+  auth(USER_ROLE.user, USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.analyst),
+  // Remove temporarily
+  UserController.deleteUserWithPassword
+);
 //main routes
 router
   .route('/')

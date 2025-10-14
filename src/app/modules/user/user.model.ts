@@ -8,12 +8,18 @@ const userSchema = new Schema<TUser, UserModal>(
   {
     firstName: {
       type: String,
-      required: [true, 'First name is required'], // Custom error message
+      required: [true, 'First name is required'],
+    },
+    lastName: {
+      type: String,
+      required: function() {
+        return this.authType === 'local'; // Only required for local auth
+      }
     },
     email: {
       type: String,
-      unique : true,
-      required: [true, 'Email is required'], // Custom error message
+      unique: true,
+      required: [true, 'Email is required'],
       lowercase: true,
     },
     phoneNumber: {
@@ -22,47 +28,61 @@ const userSchema = new Schema<TUser, UserModal>(
     },
     profileImage: {
       type: String,
-      default : '',
+      default: '',
     },
     CV: {
       type: String,
-      default : '',
+      default: '',
     },
     address: {
       type: String,
-      default : '',
+      default: '',
     },
     postCode: {
       type: String,
-      default : '',
+      default: '',
     },
-    country : {
+    country: {
       type: String,
-      default : '',
+      default: '',
     },
-    userId : {
-      type : String,
+    userId: {
+      type: String,
     },
     password: {
       type: String,
-      required: [true, 'Password is required'], // Custom error message
+      required: function() {
+        return this.authType === 'local'; // Only required for local auth
+      },
       select: false,
-      minlength: [8, 'Password must be at least 8 characters long'], // Custom error message for minlength
+      minlength: [8, 'Password must be at least 8 characters long'],
     },
     ConfirmPassword: {
       type: String,
-      required: [true, 'Password is required'], // Custom error message
+      required: function() {
+        return this.authType === 'local'; // Only required for local auth
+      },
       select: false,
-      minlength: [8, 'Password must be at least 8 characters long'], // Custom error message for minlength
+      minlength: [8, 'Password must be at least 8 characters long'],
     },
-    Designation : {
-      type : String,
-      required : [true, "Designation Is Required"]
+    Designation: {
+      type: String,
+      required: [true, "Designation Is Required"]
     },
     role: {
       type: String,
       enum: ["admin", "superAdmin", "analyst", "user"],
       default: "user"
+    },
+    // Social login fields
+    authType: {
+      type: String,
+      enum: ['local', 'google', 'facebook', 'apple'],
+      default: 'local'
+    },
+    socialId: {
+      type: String,
+      sparse: true
     },
     isHumanTrue: {
       type: Boolean,
@@ -71,7 +91,7 @@ const userSchema = new Schema<TUser, UserModal>(
     isDeleted: {
       type: Boolean,
       default: false,
-      required: [true, 'Deleted status is required'], // Custom error message
+      required: [true, 'Deleted status is required'],
     },
     subscriptionId: {
       type: Schema.Types.ObjectId,
@@ -80,21 +100,21 @@ const userSchema = new Schema<TUser, UserModal>(
     isBlocked: {
       type: Boolean,
       default: false,
-      required: [true, 'Blocked status is required'], // Custom error message
+      required: [true, 'Blocked status is required'],
     },
-    isSubscription : {
-      type : Boolean,
-      default : false
+    isSubscription: {
+      type: Boolean,
+      default: false
     },
     isEmailVerified: {
       type: Boolean,
       default: false,
-      required: [true, 'Email verification status is required'], // Custom error message
+      required: [true, 'Email verification status is required'],
     },
     isResetPassword: {
       type: Boolean,
       default: false,
-      required: [true, 'Reset password status is required'], // Custom error message
+      required: [true, 'Reset password status is required'],
     },
     oneTimeCode: {
       type: String,
@@ -106,13 +126,13 @@ const userSchema = new Schema<TUser, UserModal>(
       default: null,
       required: [false, 'One-time code expiry is optional'],
     },
-    subEndDate : {
-      type : Date,
-      default : null,
+    subEndDate: {
+      type: Date,
+      default: null,
     },
-    serviceCount : {
-      type : Number,
-      default : 0
+    serviceCount: {
+      type: Number,
+      default: 0
     },
     otpCountDown: {
       type: Number,
@@ -124,30 +144,43 @@ const userSchema = new Schema<TUser, UserModal>(
       enum: ['Active', 'Blocked', 'Delete'],
       default: 'Active',
     },
-    fcmToken: {
-      type: String,
-      default: null,
-      required: [false, 'FCM token is optional'],
+ 
+  // FCM Token fields
+  fcmToken: {
+    type: String,
+    default: null,
+  },
+  fcmTokens: [{
+    type: String, // For multiple devices
+  }],
+  notificationPreferences: {
+    applied: { type: Boolean, default: true },
+    shortlisted: { type: Boolean, default: true },
+    interview: { type: Boolean, default: true },
+    offer: { type: Boolean, default: true },
+    info: { type: Boolean, default: true },
+    system: { type: Boolean, default: true },
+  }
+,
+    Applied: {
+      type: Boolean,
+      default: true
     },
-    Applied : {
-      type : Boolean,
-      default : true
+    Shortlisted: {
+      type: Boolean,
+      default: true
     },
-    Shortlisted : {
-      type : Boolean,
-      default : true
+    Rejected: {
+      type: Boolean,
+      default: true
     },
-    Rejected : {
-      type : Boolean,
-      default : true
+    Interview: {
+      type: Boolean,
+      default: true
     },
-    Interview : {
-      type : Boolean,
-      default : true
-    },
-    Offer : {
-      type : Boolean,
-      default : true
+    Offer: {
+      type: Boolean,
+      default: true
     }
   },
   {
@@ -156,12 +189,11 @@ const userSchema = new Schema<TUser, UserModal>(
     toObject: { virtuals: true },
   }
 );
-// "Applied", "Shortlisted", "Rejected", "Interview", "Offer"
+
 userSchema.virtual('fullName').get(function () {
-  return `${this.firstName} ${this.lastName}`;
+  return `${this.firstName} ${this.lastName || ''}`;
 });
 
-// Apply the paginate plugin
 userSchema.plugin(paginate);
 
 // Static methods
@@ -180,9 +212,9 @@ userSchema.statics.isMatchPassword = async function (
   return await bcrypt.compare(password, hashPassword);
 };
 
-// Middleware to hash password before saving
+// Middleware to hash password before saving (only for local auth)
 userSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
+  if (this.authType === 'local' && this.isModified('password')) {
     this.password = await bcrypt.hash(
       this.password,
       Number(config.bcrypt.saltRounds)
@@ -191,5 +223,4 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// Create and export the User model
 export const User = model<TUser, UserModal>('User', userSchema);

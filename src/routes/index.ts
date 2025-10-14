@@ -5,6 +5,8 @@ import { JobRouter } from '../app/modules/job/job.route';
 import { LibraryRoute } from '../app/modules/library/library.route';
 import { faqRouter } from '../app/modules/FAQ/FAQ.route';
 import { notificationRouter } from '../app/modules/notification/notification.route';
+import { fcmTokenRouter } from '../app/modules/notification/fcmToken.routes';
+
 import { paymentRoute } from '../app/modules/payment/payment.route';
 import { privacyPolicyRouter } from '../app/modules/privacy&Policy/privacy&Policy.route';
 import { recruiterRouter } from '../app/modules/recruiters/recruiters.route';
@@ -15,6 +17,10 @@ const apiRoutes = [
   {
     path: '/auth',
     route: AuthRoutes,
+  },
+  {
+    path: '/fcm',
+    route: fcmTokenRouter,
   },
   {
     path: '/user',
@@ -33,7 +39,7 @@ const apiRoutes = [
     route: faqRouter,
   },
   {
-    path: '/notification',
+    path: '/notifications',
     route: notificationRouter,
   },
   {

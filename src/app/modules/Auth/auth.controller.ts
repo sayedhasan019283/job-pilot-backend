@@ -2,17 +2,44 @@ import { StatusCodes } from 'http-status-codes';
 import catchAsync from '../../../shared/catchAsync';
 import sendResponse from '../../../shared/sendResponse';
 import { AuthService } from './auth.service';
-import { Request, Response, Express } from 'express';
-
+import { Request, Response } from 'express';
 
 //login
 const loginIntoDB = catchAsync(async (req, res, next) => {
-  console.log("Login Route" , req.body)
+  console.log("Login Route1" , req.body)
   const result = await AuthService.loginIntoDB(req.body);
   sendResponse(res, {
     code: StatusCodes.OK,
     message: 'Login Successful',
     data: result,
+  });
+});
+
+// Social login success handler
+const socialLoginSuccess = catchAsync(async (req: Request, res: Response) => {
+  if (!req.user) {
+    return sendResponse(res, {
+      code: StatusCodes.UNAUTHORIZED,
+      message: 'Social authentication failed',
+      data: null,
+    });
+  }
+
+  const result = await AuthService.socialLogin(req.user);
+  
+  sendResponse(res, {
+    code: StatusCodes.OK,
+    message: 'Social login successful',
+    data: result,
+  });
+});
+
+// Social login failure handler
+const socialLoginFailure = catchAsync(async (req: Request, res: Response) => {
+  sendResponse(res, {
+    code: StatusCodes.UNAUTHORIZED,
+    message: 'Social authentication failed',
+    data: null,
   });
 });
 
@@ -39,6 +66,7 @@ const resendOTP = catchAsync(async (req, res, next) => {
     data: result,
   });
 })
+
 //verify email
 const verifyEmail = catchAsync(async (req, res, next) => {
   const verifyData = req.body;
@@ -90,12 +118,6 @@ const refreshToken = catchAsync(async (req, res, next) => {
   });
 });
 
-
-
-
-
-
-
 export const AuthController = {
   loginIntoDB,
   verifyEmail,
@@ -104,5 +126,6 @@ export const AuthController = {
   changePassword,
   refreshToken,
   resendOTP,
-
+  socialLoginSuccess,
+  socialLoginFailure,
 };

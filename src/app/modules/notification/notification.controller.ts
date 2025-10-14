@@ -1,70 +1,98 @@
-
+// notification.controller.ts
 import { NextFunction, Request, Response } from 'express';
-import admin from '../../../config/firebase';
 import catchAsync from '../../../shared/catchAsync';
-import { User } from '../user/user.model';
-import { NotificationModel } from './notification.model';
 import { notificationService } from './notification.service';
 import ApiError from '../../../errors/ApiError';
 import { StatusCodes } from 'http-status-codes';
 import sendResponse from '../../../shared/sendResponse';
 
-// Send Push Notification function
-export const sendPushNotification = async (userId: string, text: string, title : string) => {
-  try {
-    // Find the user by ID
-    console.log("Hit Hear ", userId)
-    const user = await User.findById(userId);
-    console.log(userId)
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Retrieve the fcmToken from the user document
-    const fcmToken = user.fcmToken;
-    if (!fcmToken) {
-      throw new Error('FCM token not found for this user');
-    }
-
-    // Send notification via Firebase Cloud Messaging
-    const message = {
-      notification: {
-        title: title,
-        body: text,
-      },
-      token: fcmToken,
-    };
-
-    const response = await admin.messaging().send(message);
-    console.log('Successfully sent message:', response);
-
-    // Save notification to the database
-    const notification = new NotificationModel({
-      text,
-      userId: user._id,
-    });
-    await notification.save();
-
-    return response;
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-    throw error;
+// Get notifications with filtering
+const getNotificationUnderUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = req.user;
+  const filters = req.query;
+  
+  const result = await notificationService.getNotificationUnderUser(id, filters);
+  
+  if (!result) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "No Notification Found!");
   }
-};
 
-const getNotificationUnderUser = catchAsync(async (req : Request, res : Response, next : NextFunction) => {
-    const {id} = req.user;
-    const result = await notificationService.getNotificationUnderUser(id);
-    if (!result) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "No Notification Found!")
-    }
-    sendResponse(res, {
-        code : StatusCodes.OK,
-        message : "Get All Notification For this user.",
-        data : result
-    })
-})
+  sendResponse(res, {
+    code: StatusCodes.OK,
+    message: "Notifications retrieved successfully",
+    data: result
+  });
+});
+
+// Mark as read
+const markNotificationAsRead = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = req.user;
+  const { notificationId } = req.params;
+
+  const result = await notificationService.markAsRead(notificationId, id);
+  
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Notification not found");
+  }
+
+  sendResponse(res, {
+    code: StatusCodes.OK,
+    message: "Notification marked as read",
+    data: result
+  });
+});
+
+// Mark all as read
+const markAllNotificationsAsRead = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = req.user;
+  const { type } = req.body;
+
+  const result = await notificationService.markAllAsRead(id, type);
+
+  sendResponse(res, {
+    code: StatusCodes.OK,
+    message: type ? `All ${type} notifications marked as read` : "All notifications marked as read",
+    data: result
+  });
+});
+
+// Get unread count
+const getUnreadNotificationCount = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = req.user;
+  const { type } = req.query;
+
+  const count = await notificationService.getUnreadCount(id, type as string);
+
+  sendResponse(res, {
+    code: StatusCodes.OK,
+    message: "Unread count retrieved successfully",
+    data: { unreadCount: count }
+  });
+});
+
+// Send test notification
+const sendTestNotification = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = req.user;
+  const { title, text, type } = req.body;
+
+  const notification = await notificationService.sendRealTimeNotification(
+    id, 
+    title || 'Test Notification', 
+    text || 'This is a test notification from your app!', 
+    type || 'info'
+  );
+
+  sendResponse(res, {
+    code: StatusCodes.OK,
+    message: "Test notification sent successfully",
+    data: notification
+  });
+});
 
 export const notificationController = {
-    getNotificationUnderUser
-}
+  getNotificationUnderUser,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  getUnreadNotificationCount,
+  sendTestNotification,
+};

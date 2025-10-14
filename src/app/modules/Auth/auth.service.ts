@@ -13,7 +13,7 @@ import {
 import { sendResetPasswordEmail } from '../../../helpers/emailHelper';
 import { Secret } from 'jsonwebtoken';
 import createOtp from './createOtp';
-import {  Types } from 'mongoose';
+import { Types } from 'mongoose';
 
 // Helper function for user status validation
 const validateUserStatus = (user: any) => {
@@ -32,12 +32,22 @@ const loginIntoDB = async (payload: ILogin) => {
   console.log(payload)
   const user = await User.findOne({
     email: payload.email,
-    // isEmailVerified: true,
   }).select('+password');
+  
   if (!user) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'User not found.');
   }
+
+  // For social auth users, they can't use password login
+  if (user.authType !== 'local') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Please use ${user.authType} login for this account.`
+    );
+  }
+
   validateUserStatus(user);
+  
   const isPasswordValid = await bcrypt.compare(payload.password, user.password);
   if (!isPasswordValid) {
     throw new ApiError(
@@ -45,9 +55,7 @@ const loginIntoDB = async (payload: ILogin) => {
       'The password you entered is incorrect. Please check and try again.'
     );
   }
-  if (!user) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'User not found.');
-  }
+
   const { password, ...userWithoutPassword } = user.toObject();
 
   const accessTokenPayload = {
@@ -55,7 +63,6 @@ const loginIntoDB = async (payload: ILogin) => {
     email: user.email,
     role: user.role,
   };
-  console.log( "accessTokenPayload------>>>>",accessTokenPayload)
 
   const accessToken = jwtHelper.createToken(
     accessTokenPayload,
@@ -67,6 +74,39 @@ const loginIntoDB = async (payload: ILogin) => {
     config.jwt.accessSecret as Secret,
     config.jwt.refreshExpirationTime
   );
+  
+  return {
+    user: userWithoutPassword,
+    tokens: {
+      accessToken,
+      refreshToken,
+    },
+  };
+};
+
+// Social login service
+const socialLogin = async (user: any) => {
+  validateUserStatus(user);
+
+  const accessTokenPayload = {
+    id: user._id,
+    email: user.email,
+    role: user.role,
+  };
+
+  const accessToken = jwtHelper.createToken(
+    accessTokenPayload,
+    config.jwt.accessSecret as Secret,
+    config.jwt.accessExpirationTime
+  );
+  const refreshToken = jwtHelper.createToken(
+    accessTokenPayload,
+    config.jwt.accessSecret as Secret,
+    config.jwt.refreshExpirationTime
+  );
+
+  const { password, ...userWithoutPassword } = user.toObject();
+
   return {
     user: userWithoutPassword,
     tokens: {
@@ -81,6 +121,15 @@ const forgotPassword = async (email: string) => {
   if (!user) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'User not found.');
   }
+  
+  // Social auth users can't reset password this way
+  if (user.authType !== 'local') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Password reset not available for ${user.authType} accounts.`
+    );
+  }
+
   validateUserStatus(user);
 
   const { oneTimeCode, oneTimeCodeExpire } = createOtp();
@@ -194,6 +243,15 @@ const resetPassword = async (payload: IResetPassword) => {
   if (!user) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'User not found.');
   }
+  
+  // Social auth users can't reset password this way
+  if (user.authType !== 'local') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Password reset not available for ${user.authType} accounts.`
+    );
+  }
+
   validateUserStatus(user);
 
   user.password = newPassword;
@@ -209,6 +267,15 @@ const changePassword = async (userId: Types.ObjectId, payload: IChangePassword) 
   if (!user) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'User not found.');
   }
+  
+  // Social auth users can't change password
+  if (user.authType !== 'local') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Password change not available for ${user.authType} accounts.`
+    );
+  }
+
   console.log("============>>>>" , user)
   validateUserStatus(user);
   if (payload.currentPassword === payload.newPassword) {
@@ -264,31 +331,6 @@ const refreshToken = async (refreshToken: string) => {
   };
 };
 
-// Service to handle saving or updating the user in the database
-const findOrCreateUser = async (profile: { id: any; emails: { value: any; }[]; displayName: any; name: { givenName: any; familyName: any; }; photos: { value: any; }[]; }, provider: any) => {
-  // Check if the user already exists in the database
-  const existingUser = await User.findOne({ providerId: profile.id, provider });
-  
-  if (existingUser) {
-    // If the user exists, return the existing user
-    return existingUser;
-  }
-
-  // Otherwise, create a new user record
-  const newUser = new User({
-    provider,
-    providerId: profile.id,
-    email: profile.emails[0].value, // Assuming email is available
-    displayName: profile.displayName || `${profile.name.givenName} ${profile.name.familyName}`,
-    profilePicture: profile.photos ? profile.photos[0].value : null
-  });
-  console.log(newUser)
-  // await newUser.save();
-  return newUser;
-}
-
-
-
 export const AuthService = {
   loginIntoDB,
   verifyEmail,
@@ -297,6 +339,5 @@ export const AuthService = {
   resetPassword,
   changePassword,
   refreshToken,
-  findOrCreateUser
-}; 
-  
+  socialLogin
+};
