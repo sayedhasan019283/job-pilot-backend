@@ -5,6 +5,8 @@ import sendResponse from "../../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../../errors/ApiError";
 import { USER_ROLE } from "./user.constant"; 
+
+
 const createAppliedJob = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
     console.log( req.file)
     const payload = req.body;
@@ -70,6 +72,8 @@ const readAllJobApplied = catchAsync(async (req: Request, res: Response, next: N
         data: result
     });
 });
+
+
 const readAllJobAppliedForSingleUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     let { status, page, limit } = req.query;
     const {id} = req.user

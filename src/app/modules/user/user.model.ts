@@ -71,7 +71,7 @@ const userSchema = new Schema<TUser, UserModal>(
     },
     role: {
       type: String,
-      enum: ["admin", "superAdmin", "analyst", "user"],
+      enum: ["admin", "superAdmin", "analyst", "user","recruiter"],
       default: "user"
     },
     // Social login fields

@@ -13,6 +13,18 @@ const loginValidationSchema = z.object({
   }),
 });
 
+export const mobileSocialLoginValidation = z.object({
+  body: z.object({
+    accessToken: z.string({
+      required_error: 'Access token is required',
+    }),
+    provider: z.enum(['google', 'facebook'], {
+      required_error: 'Provider is required',
+      invalid_type_error: 'Provider must be either "google" or "facebook"',
+    }),
+  }),
+});
+
 const verifyEmailValidationSchema = z.object({
   body: z.object({
     email: z.string({
@@ -33,7 +45,7 @@ const resetPasswordValidationSchema = z.object({
       required_error: 'New Password is required',
     }),
     ConfirmPassword: z.string({
-      required_error: 'confirm Password is required',
+      required_error: 'Confirm Password is required',
     }),
   }),
 });
@@ -49,9 +61,30 @@ const changePasswordValidationSchema = z.object({
   }),
 });
 
+// Forgot password validation (if you need it)
+const forgotPasswordValidationSchema = z.object({
+  body: z.object({
+    email: z.string({
+      required_error: 'Email is required',
+    }),
+  }),
+});
+
+// Resend OTP validation (if you need it)
+const resendOTPValidationSchema = z.object({
+  body: z.object({
+    email: z.string({
+      required_error: 'Email is required',
+    }),
+  }),
+});
+
 export const AuthValidation = {
   loginValidationSchema,
+  mobileSocialLoginValidation,
   verifyEmailValidationSchema,
   resetPasswordValidationSchema,
-  changePasswordValidationSchema
+  changePasswordValidationSchema,
+  forgotPasswordValidationSchema, // Add if needed
+  resendOTPValidationSchema, // Add if needed
 };

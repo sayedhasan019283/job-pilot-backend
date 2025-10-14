@@ -114,17 +114,33 @@ const userIdString = objectIdUserId.toString();
 
 const readAllJobAppliedIntoDB = async (page: number, limit: number) => {
     const result = await JobModel.find({})
-        .sort({ createdAt: -1 })  // Sort by descending order
-        .skip((page - 1) * limit) // Skip (page - 1) * limit records
-        .limit(limit); // Limit to the specified number of records
+        .populate('userId', 'firstName lastName email')
+        .populate('adminId', 'firstName lastName email')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit);
 
     if (!result || result.length === 0) {
         throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!");
     }
 
-    return result;
-};
+    // Transform the data in service layer
+    const transformedResult = result.map(job => ({
+        ...job.toObject(),
+        userInfo: job.userId ? {
+            firstName: (job.userId as any).firstName,
+            lastName: (job.userId as any).lastName,
+            email: (job.userId as any).email
+        } : null,
+        adminInfo: job.adminId ? {
+            firstName: (job.adminId as any).firstName,
+            lastName: (job.adminId as any).lastName,
+            email: (job.adminId as any).email
+        } : null
+    }));
 
+    return transformedResult;
+};
 const readSingleJobAppliedIntoDB = async (appliedJobId : string) => {
     const result =  await JobModel.findOne({_id : appliedJobId})
     if (!result) {
