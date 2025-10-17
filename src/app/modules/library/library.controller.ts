@@ -63,7 +63,7 @@ const readAllCreateLibraryItem = async (req : Request, res : Response, next : Ne
   const {page, limit} = req.query
 
   const pageNumber = parseInt(page as string) || 1;
-    const limitNumber = parseInt(limit as string) || 10;
+    const limitNumber = parseInt(limit as string) || 20;
     const result = await libraryService.readAllCreateLibraryItem(pageNumber, limitNumber);
     sendResponse(res, {
         code : 200,

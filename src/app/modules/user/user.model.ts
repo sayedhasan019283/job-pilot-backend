@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { Schema, model } from 'mongoose';
+import { Schema, model, Document } from 'mongoose';
 import config from '../../../config';
 import { TUser, UserModal } from './user.interface';
 import paginate from '../../../helpers/paginate';
@@ -12,9 +12,6 @@ const userSchema = new Schema<TUser, UserModal>(
     },
     lastName: {
       type: String,
-      required: function() {
-        return this.authType === 'local'; // Only required for local auth
-      }
     },
     email: {
       type: String,
@@ -24,7 +21,7 @@ const userSchema = new Schema<TUser, UserModal>(
     },
     phoneNumber: {
       type: String,
-      required: [false, 'Phone number is optional'],
+      required: false,
     },
     profileImage: {
       type: String,
@@ -51,16 +48,16 @@ const userSchema = new Schema<TUser, UserModal>(
     },
     password: {
       type: String,
-      required: function() {
-        return this.authType === 'local'; // Only required for local auth
+      required: function (this: TUser) {
+        return this.authType === 'local';
       },
       select: false,
       minlength: [8, 'Password must be at least 8 characters long'],
     },
     ConfirmPassword: {
       type: String,
-      required: function() {
-        return this.authType === 'local'; // Only required for local auth
+      required: function (this: TUser) {
+        return this.authType === 'local';
       },
       select: false,
       minlength: [8, 'Password must be at least 8 characters long'],
@@ -71,10 +68,9 @@ const userSchema = new Schema<TUser, UserModal>(
     },
     role: {
       type: String,
-      enum: ["admin", "superAdmin", "analyst", "user","recruiter"],
+      enum: ["admin", "superAdmin", "analyst", "user", "recruiter"],
       default: "user"
     },
-    // Social login fields
     authType: {
       type: String,
       enum: ['local', 'google', 'facebook', 'apple'],
@@ -95,7 +91,7 @@ const userSchema = new Schema<TUser, UserModal>(
     },
     subscriptionId: {
       type: Schema.Types.ObjectId,
-      ref: 'Subscription', 
+      ref: 'Subscription',
     },
     isBlocked: {
       type: Boolean,
@@ -119,12 +115,10 @@ const userSchema = new Schema<TUser, UserModal>(
     oneTimeCode: {
       type: String,
       default: null,
-      required: [false, 'One-time code is optional'],
     },
     oneTimeCodeExpire: {
       type: Date,
       default: null,
-      required: [false, 'One-time code expiry is optional'],
     },
     subEndDate: {
       type: Date,
@@ -137,31 +131,27 @@ const userSchema = new Schema<TUser, UserModal>(
     otpCountDown: {
       type: Number,
       default: null,
-      required: [false, 'OTP count down is optional'],
     },
     status: {
       type: String,
       enum: ['Active', 'Blocked', 'Delete'],
       default: 'Active',
     },
- 
-  // FCM Token fields
-  fcmToken: {
-    type: String,
-    default: null,
-  },
-  fcmTokens: [{
-    type: String, // For multiple devices
-  }],
-  notificationPreferences: {
-    applied: { type: Boolean, default: true },
-    shortlisted: { type: Boolean, default: true },
-    interview: { type: Boolean, default: true },
-    offer: { type: Boolean, default: true },
-    info: { type: Boolean, default: true },
-    system: { type: Boolean, default: true },
-  }
-,
+    fcmToken: {
+      type: String,
+      default: null,
+    },
+    fcmTokens: [{
+      type: String,
+    }],
+    notificationPreferences: {
+      applied: { type: Boolean, default: true },
+      shortlisted: { type: Boolean, default: true },
+      interview: { type: Boolean, default: true },
+      offer: { type: Boolean, default: true },
+      info: { type: Boolean, default: true },
+      system: { type: Boolean, default: true },
+    },
     Applied: {
       type: Boolean,
       default: true
@@ -190,19 +180,19 @@ const userSchema = new Schema<TUser, UserModal>(
   }
 );
 
-userSchema.virtual('fullName').get(function () {
-  return `${this.firstName} ${this.lastName || ''}`;
+userSchema.virtual('fullName').get(function (this: TUser) {
+  return `${this.firstName} ${this.lastName || ''}`.trim();
 });
 
 userSchema.plugin(paginate);
 
 // Static methods
-userSchema.statics.isExistUserById = async function (id: string) {
-  return await this.findById(id);
+userSchema.statics.isExistUserById = async function (id: string): Promise<Partial<TUser> | null> {
+  return await this.findById(id).select('-password -ConfirmPassword');
 };
 
-userSchema.statics.isExistUserByEmail = async function (email: string) {
-  return await this.findOne({ email });
+userSchema.statics.isExistUserByEmail = async function (email: string): Promise<Partial<TUser> | null> {
+  return await this.findOne({ email }).select('-password -ConfirmPassword');
 };
 
 userSchema.statics.isMatchPassword = async function (
@@ -214,9 +204,17 @@ userSchema.statics.isMatchPassword = async function (
 
 // Middleware to hash password before saving (only for local auth)
 userSchema.pre('save', async function (next) {
-  if (this.authType === 'local' && this.isModified('password')) {
+  if (this.isModified('password') && this.authType === 'local' && this.password) {
     this.password = await bcrypt.hash(
       this.password,
+      Number(config.bcrypt.saltRounds)
+    );
+  }
+
+  // Also hash ConfirmPassword if it's modified and exists
+  if (this.isModified('ConfirmPassword') && this.authType === 'local' && this.ConfirmPassword) {
+    this.ConfirmPassword = await bcrypt.hash(
+      this.ConfirmPassword,
       Number(config.bcrypt.saltRounds)
     );
   }

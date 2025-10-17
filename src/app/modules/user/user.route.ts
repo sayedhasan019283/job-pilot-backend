@@ -122,6 +122,28 @@ router.post(
   // Remove temporarily
   UserController.deleteUserWithPassword
 );
+
+router.delete(
+  '/delete/:id',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin), // Only admin and superAdmin can delete users
+  UserController.deleteUserById
+);
+router.patch(
+  '/profile-update/:id',  // Add :id parameter
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin), // Only admin/superAdmin can update other users
+  upload.fields([
+    {
+      name: "profileImage",
+      maxCount: 1
+    },
+    {
+      name: "CV",
+      maxCount: 1
+    },
+  ]),
+  convertHeicToPngMiddleware(UPLOADS_FOLDER),
+  UserController.updateUserById  // New controller method
+);
 //main routes
 router
   .route('/')

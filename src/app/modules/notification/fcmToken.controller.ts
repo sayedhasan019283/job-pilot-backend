@@ -6,9 +6,28 @@ import sendResponse from '../../../shared/sendResponse';
 import { StatusCodes } from 'http-status-codes';
 import ApiError from '../../../errors/ApiError';
 
+// Define interface for authenticated user
+interface AuthenticatedUser {
+  id: string;
+  userId?: string;
+  _id?: string;
+  userid?: string;
+}
+
+// ✅ FIXED: Use type intersection instead of interface extension
+type AuthenticatedRequest = Request & {
+  user?: AuthenticatedUser;
+};
+
 // Save FCM token
 const saveFCMToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const { id } = req.user;
+  const authenticatedReq = req as AuthenticatedRequest;
+  
+  if (!authenticatedReq.user) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'User not authenticated');
+  }
+  
+  const { id } = authenticatedReq.user;
   const { fcmToken } = req.body;
 
   if (!fcmToken) {
@@ -37,7 +56,13 @@ const saveFCMToken = catchAsync(async (req: Request, res: Response, next: NextFu
 
 // Update notification preferences
 const updateNotificationPreferences = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const { id } = req.user;
+  const authenticatedReq = req as AuthenticatedRequest;
+  
+  if (!authenticatedReq.user) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'User not authenticated');
+  }
+  
+  const { id } = authenticatedReq.user;
   const { preferences } = req.body;
 
   const user = await User.findByIdAndUpdate(
@@ -48,6 +73,10 @@ const updateNotificationPreferences = catchAsync(async (req: Request, res: Respo
     { new: true }
   ).select('name email notificationPreferences');
 
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
   sendResponse(res, {
     code: StatusCodes.OK,
     message: "Notification preferences updated successfully",
@@ -57,7 +86,13 @@ const updateNotificationPreferences = catchAsync(async (req: Request, res: Respo
 
 // Remove FCM token (logout)
 const removeFCMToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const { id } = req.user;
+  const authenticatedReq = req as AuthenticatedRequest;
+  
+  if (!authenticatedReq.user) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'User not authenticated');
+  }
+  
+  const { id } = authenticatedReq.user;
   const { fcmToken } = req.body;
 
   const user = await User.findByIdAndUpdate(
@@ -68,6 +103,10 @@ const removeFCMToken = catchAsync(async (req: Request, res: Response, next: Next
     },
     { new: true }
   ).select('name email');
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
 
   sendResponse(res, {
     code: StatusCodes.OK,

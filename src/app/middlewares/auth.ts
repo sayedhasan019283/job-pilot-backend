@@ -7,44 +7,77 @@ import AppError from '../../errors/AppError';
 import config from '../../config';
 import { User } from '../modules/user/user.model';
 
+interface AuthUser extends JwtPayload {
+  id: string;
+  role: keyof typeof USER_ROLE;
+  iat?: number;
+  exp?: number;
+}
+
+// Define the user type you want to attach
+interface RequestUser {
+  _id: string;
+  id: string;
+  role: keyof typeof USER_ROLE;
+  email?: string;
+  name?: string;
+}
+
 const auth = (...requiredRoles: (keyof typeof USER_ROLE)[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const rawToken = req.headers.authorization;
     const token = rawToken?.split(' ')[1];
 
-    // Check if the token is missing
     if (!token) {
-      console.log("hear========>>>>>>", token)
+      console.log("Token missing");
       throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
     }
 
-    // Verify if the given token is valid
-    const decoded = jwt.verify(
-      token,
-      config.jwt.accessSecret as string,
-    ) as JwtPayload;
+    let decoded: AuthUser;
+    try {
+      decoded = jwt.verify(
+        token,
+        config.jwt.accessSecret as string,
+      ) as AuthUser;
+    } catch (error) {
+      throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid token!');
+    }
 
     const { role, id } = decoded;
     console.log("User Id", id);
+    
+    if (!id || !role) {
+      throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid token payload!');
+    }
+
     const user = await User.findById(id);
 
     if (!user) {
       throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
     }
 
-    // Check if the role is not allowed
-    if (requiredRoles && !requiredRoles.includes(role)) {
+    // Convert to plain object to safely access properties
+    const userObject = user.toObject();
+    
+    if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(role)) {
       res.status(401).send({
         "success": false,
         "statusCode": 401,
         "message": "You have no access to this route",
       });
-      return; // Ensure we stop further execution after sending the response
+      return;
     }
 
-    // Attach user to the request object
-    req.user = decoded as JwtPayload;
-    next();  // Proceed to the next middleware
+    // Use type assertion
+    (req as any).user = {
+      _id: user._id.toString(),
+      id: user._id.toString(),
+      role: (userObject as any).role || role,
+      email: (userObject as any).email,
+      name: (userObject as any).name,
+    };
+    
+    next();
   });
 };
 

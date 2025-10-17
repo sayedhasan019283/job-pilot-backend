@@ -98,23 +98,31 @@ const getJobStatusPercentage = async (userId?: string) => {
   };
 };
 
-const createAppliedIntoDB = async (payload : TJob) => {
+const createAppliedIntoDB = async (payload: TJob) => {
+    console.log('🎯 Creating job with payload:', {
+        companyName: payload.companyName,
+        jobTitle: payload.jobTitle,
+        companyLogo: payload.companyLogo,
+        userId: payload.userId
+    });
+    
     const result = await JobModel.create(payload);
+    
     if (!result) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "Job assign create failed")
+        throw new ApiError(StatusCodes.BAD_REQUEST, "Job assignment creation failed");
     }
-    const objectIdUserId = new Types.ObjectId(result.userId);
-
-// Convert ObjectId to string
-const userIdString = objectIdUserId.toString();
-  
-    console.log("from hear" ,result.userId)
+    
+    console.log('✅ Job created successfully:', {
+        id: result._id,
+        companyLogo: result.companyLogo
+    });
+    
     return result;
 }
 
 const readAllJobAppliedIntoDB = async (page: number, limit: number) => {
     const result = await JobModel.find({})
-        .populate('userId', 'firstName lastName email')
+        .populate('userId', 'firstName lastName email profileImage')
         .populate('adminId', 'firstName lastName email')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
@@ -124,20 +132,26 @@ const readAllJobAppliedIntoDB = async (page: number, limit: number) => {
         throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!");
     }
 
-    // Transform the data in service layer
-    const transformedResult = result.map(job => ({
-        ...job.toObject(),
-        userInfo: job.userId ? {
-            firstName: (job.userId as any).firstName,
-            lastName: (job.userId as any).lastName,
-            email: (job.userId as any).email
-        } : null,
-        adminInfo: job.adminId ? {
-            firstName: (job.adminId as any).firstName,
-            lastName: (job.adminId as any).lastName,
-            email: (job.adminId as any).email
-        } : null
-    }));
+    // Transform the data with proper company logo URLs
+    const transformedResult = result.map(job => {
+        const jobObj = job.toObject();
+        
+        return {
+            ...jobObj,
+            companyLogo: jobObj.companyLogo ? jobObj.companyLogo : null,
+            userInfo: jobObj.userId ? {
+                firstName: (jobObj.userId as any).firstName,
+                lastName: (jobObj.userId as any).lastName,
+                email: (jobObj.userId as any).email,
+                profileImage: (jobObj.userId as any).profileImage
+            } : null,
+            adminInfo: jobObj.adminId ? {
+                firstName: (jobObj.adminId as any).firstName,
+                lastName: (jobObj.adminId as any).lastName,
+                email: (jobObj.adminId as any).email
+            } : null
+        };
+    });
 
     return transformedResult;
 };

@@ -6,29 +6,58 @@ import { StatusCodes } from "http-status-codes";
 import ApiError from "../../../errors/ApiError";
 import { USER_ROLE } from "./user.constant"; 
 
+// ✅ FIXED: Use type intersection instead of interface extension
+export type AuthenticatedRequest = Request & {
+  user: {
+    id: string;
+    role: string;
+    _id?: any;
+    email?: string;
+  };
+};
 
-const createAppliedJob = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
-    console.log( req.file)
+const createAppliedJob = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    console.log('📁 File received:', req.file);
+    console.log('📦 Request body:', req.body);
+    
     const payload = req.body;
-    const adminId = req.user.id;
-    if (req.file) {
-         payload.companyLogo =  `/uploads/jobs/${req.file.filename}`
+    
+    // Use type assertion for authenticated request
+    const authenticatedReq = req as AuthenticatedRequest;
+    if (!authenticatedReq.user) {
+        throw new ApiError(StatusCodes.UNAUTHORIZED, 'User not authenticated');
     }
+    
+    const adminId = authenticatedReq.user.id;
+    
+    // Handle file upload
+    if (req.file) {
+        payload.companyLogo = `/uploads/jobs/${req.file.filename}`;
+        console.log('✅ Company logo path:', payload.companyLogo);
+    } else {
+        console.log('⚠️ No company logo file received');
+    }
+    
     const result = await jobService.createAppliedIntoDB({...payload, adminId});
+    
     sendResponse(res, {
-        code : StatusCodes.OK,
-        message : "job assign successful",
-        data : result
-    })
-})
+        code: StatusCodes.OK,
+        message: "Job assigned successfully",
+        data: result
+    });
+});
+
 const getJobStatusPercentage = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const { userId } = req.query; // Optional: get specific user's data
-  const currentUserId = req.user.id; // From auth middleware
+  
+  // Use type assertion for authenticated request
+  const authenticatedReq = req as AuthenticatedRequest;
+  const currentUserId = authenticatedReq.user.id;
   
   let result;
   
   // If user has 'user' role, only show their data
-  if (req.user.role === USER_ROLE.user) {
+  if (authenticatedReq.user.role === USER_ROLE.user) {
     result = await jobService.getJobStatusPercentage(currentUserId);
   } 
   // If admin/analyst and specific userId provided, show that user's data
@@ -47,14 +76,13 @@ const getJobStatusPercentage = catchAsync(async (req: Request, res: Response, ne
   });
 });
 
-
 const readAllJobApplied = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    let { status, page, limit } = req.query;
+    const { status, page, limit } = req.query;
 
     // Parse 'page' and 'limit' query parameters as numbers
     // Default to page 1 and limit 10 if not provided or invalid
     const pageNumber = parseInt(page as string) || 1;
-    const limitNumber = parseInt(limit as string) || 10;
+    const limitNumber = parseInt(limit as string) || 20;
 
     let result;
 
@@ -73,19 +101,17 @@ const readAllJobApplied = catchAsync(async (req: Request, res: Response, next: N
     });
 });
 
-
 const readAllJobAppliedForSingleUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    let { status, page, limit } = req.query;
-    const {id} = req.user
+    const { status, page, limit } = req.query;
+    
+    // Use type assertion for authenticated request
+    const authenticatedReq = req as AuthenticatedRequest;
+    const userId = authenticatedReq.user.id;
 
     const pageNumber = parseInt(page as string) || 1;
-    const limitNumber = parseInt(limit as string) || 10;
+    const limitNumber = parseInt(limit as string) || 20;
 
-   
-
-
-    const  result = await jobService.filterByStatusForSingleUserFromDB(status as string, pageNumber, limitNumber, id);
-
+    const result = await jobService.filterByStatusForSingleUserFromDB(status as string, pageNumber, limitNumber, userId);
 
     sendResponse(res, {
         code: StatusCodes.OK,
@@ -94,75 +120,68 @@ const readAllJobAppliedForSingleUser = catchAsync(async (req: Request, res: Resp
     });
 });
 
+const readSingleJobApplied = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const { appliedJobId } = req.params;
+    const result = await jobService.readSingleJobAppliedIntoDB(appliedJobId);
+    sendResponse(res, {
+        code: StatusCodes.OK,
+        message: "Get single data!",
+        data: result
+    });
+});
 
-const readSingleJobApplied = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
-    const {appliedJobId} = req.params
-    const result = await jobService.readSingleJobAppliedIntoDB(appliedJobId)
-    sendResponse(res , {
-        code : StatusCodes.OK,
-        message : "Get single data!",
-        data : result
-    })
-})
-
-const updateJobApplied = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
+const updateJobApplied = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const payload = req.body;
-    const {appliedJobId} = req.params
-        if (req.file) {
-         payload.companyLogo =  `/uploads/jobs/${req.file.filename}`
+    const { appliedJobId } = req.params;
+    
+    console.log('📁 Update file received:', req.file);
+    console.log('📦 Update payload:', payload);
+    
+    // Handle file upload for update
+    if (req.file) {
+        payload.companyLogo = `/uploads/jobs/${req.file.filename}`;
+        console.log('✅ Updated company logo path:', payload.companyLogo);
     }
-    console.log(payload)
-    const result = await jobService.updateJobAppliedIntoDB(appliedJobId , payload);
-    sendResponse(res , {
-        code : StatusCodes.OK,
-        message : "Update Successful.",
-        data : result
-    })
-})
+    
+    const result = await jobService.updateJobAppliedIntoDB(appliedJobId, payload);
+    
+    sendResponse(res, {
+        code: StatusCodes.OK,
+        message: "Update Successful.",
+        data: result
+    });
+});
 
-const deleteAppliedJob = catchAsync(async (req : Request , res : Response , next : NextFunction) => {
-    const {appliedJobId} = req.params;
+const deleteAppliedJob = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const { appliedJobId } = req.params;
     const result = await jobService.deleteAppliedJobFromDB(appliedJobId);
-    sendResponse(res , {
-        code : StatusCodes.OK,
-        message : "Delete Successful",
-        data : result
-    })
-})
-
-
-// const filterByStatus = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-//     const { status } = req.query;
-
-//     // Check if status is provided
-//     if (!status) {
-//         return next(new ApiError(StatusCodes.BAD_REQUEST, "Status query parameter is required"));
-//     }
-
-//     const result = await jobService.filterByStatusFromDB(status as string); // Type assertion for status
-//     res.status(StatusCodes.OK).json({ success: true, data: result });
-// });
+    sendResponse(res, {
+        code: StatusCodes.OK,
+        message: "Delete Successful",
+        data: result
+    });
+});
 
 const dashboardData = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const {period} = req.query;
-    console.log('..........' ,period)
-  // Ensure 'period' is a string and is one of 'day', 'week', or 'month'
-  if (typeof period === 'string' && ['day', 'week', 'month'].includes(period)) {
-    const result = await jobService.dashboardDataFromDB(period as 'day' | 'week' | 'month');
-    sendResponse(res, {
-      code: StatusCodes.OK,
-      message: 'Your dashboard data retrieved successfully',
-      data: result,
-    });
-  } else {
-
-    const result = await jobService.dashboardAllDataNoTimePeriodFromDB();
-    sendResponse(res, {
-      code: StatusCodes.OK,
-      message: 'Your dashboard data retrieved successfully".',
-      data : result
-    });
-  }
+    const { period } = req.query;
+    console.log('..........', period);
+    
+    // Ensure 'period' is a string and is one of 'day', 'week', or 'month'
+    if (typeof period === 'string' && ['day', 'week', 'month'].includes(period)) {
+        const result = await jobService.dashboardDataFromDB(period as 'day' | 'week' | 'month');
+        sendResponse(res, {
+            code: StatusCodes.OK,
+            message: 'Your dashboard data retrieved successfully',
+            data: result,
+        });
+    } else {
+        const result = await jobService.dashboardAllDataNoTimePeriodFromDB();
+        sendResponse(res, {
+            code: StatusCodes.OK,
+            message: 'Your dashboard data retrieved successfully".',
+            data: result
+        });
+    }
 });
 
 const dashboardDataFromSpecificMonth = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -175,7 +194,7 @@ const dashboardDataFromSpecificMonth = catchAsync(async (req: Request, res: Resp
 
     // Ensure the month and year are valid numbers
     if (isNaN(monthNumber) || isNaN(yearNumber)) {
-        return next(new Error("Invalid month or year"));
+        return next(new ApiError(StatusCodes.BAD_REQUEST, "Invalid month or year"));
     }
 
     // Pass the numbers to the service
@@ -190,27 +209,33 @@ const dashboardDataFromSpecificMonth = catchAsync(async (req: Request, res: Resp
 });
 
 const getUserJobData = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const {id} = req.user
-    console.log(req.user)
-    const result = await jobService.getUserJobData(id);
+    // Use type assertion for authenticated request
+    const authenticatedReq = req as AuthenticatedRequest;
+    const userId = authenticatedReq.user.id;
+    
+    console.log(authenticatedReq.user);
+    
+    const result = await jobService.getUserJobData(userId);
     if (!result) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!")
+        throw new ApiError(StatusCodes.BAD_REQUEST, "No Data Found!");
     } 
+    
     sendResponse(res, {
-        code : StatusCodes.OK,
-        message : "All Data Get Successfully.",
-        data : result
-    })
-})
+        code: StatusCodes.OK,
+        message: "All Data Get Successfully.",
+        data: result
+    });
+});
 
 export const jobController = {
     createAppliedJob,
     readAllJobApplied,
-    readSingleJobApplied, getJobStatusPercentage,
+    readSingleJobApplied, 
+    getJobStatusPercentage,
     updateJobApplied,
     deleteAppliedJob,
     dashboardData,
     readAllJobAppliedForSingleUser,
     dashboardDataFromSpecificMonth,
     getUserJobData
-}
+};

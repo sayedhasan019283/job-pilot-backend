@@ -5,54 +5,104 @@ import sendResponse from '../../../shared/sendResponse';
 import { UserService } from './user.service';
 import { User } from './user.model';
 import ApiError from '../../../errors/ApiError';
-// Add this to your user.controller.ts
-import { deleteUserValidationSchema } from './user.validation';
+import mongoose from 'mongoose';
 
+// Define types for file uploads
+interface MulterFiles {
+  [fieldname: string]: Express.Multer.File[];
+}
 
+interface ProfileFiles {
+  profileImage?: Express.Multer.File[];
+  CV?: Express.Multer.File[];
+  drivingLicenseFront?: Express.Multer.File[];
+  drivingLicenseBack?: Express.Multer.File[];
+}
+
+// Define minimal user interface for authentication
+interface AuthUser {
+  id: string;
+  userId?: string;
+  _id?: string;
+  userid?: string;
+}
+
+// Helper function to get user ID safely using type assertion
+const getUserId = (req: Request): string => {
+  // Use type assertion to access the user property
+  const user = (req as any).user as AuthUser;
+  if (!user || !user.id) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'User not authenticated');
+  }
+  return user.id;
+};
+
+// Helper function to get user ID with all possible properties
+const getUserIdWithFallback = (req: Request): string => {
+  const user = (req as any).user as AuthUser;
+  const userId = user?.userId || user?.id || user?._id || user?.userid;
+  
+  if (!userId) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'User not authenticated');
+  }
+  return userId;
+};
+
+const deleteUserById = catchAsync(async (req: Request, res: Response) => {
+  console.log('=== DELETE USER BY ID REQUEST ===');
+  
+  const userIdToDelete = req.params.id;
+  console.log('User ID to delete:', userIdToDelete);
+  
+  if (!userIdToDelete) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'User ID is required');
+  }
+
+  // Validate user ID format (if using MongoDB)
+  if (!mongoose.Types.ObjectId.isValid(userIdToDelete)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid user ID format');
+  }
+
+  const adminUserId = getUserIdWithFallback(req);
+  console.log('Admin performing deletion:', adminUserId);
+
+  const result = await UserService.deleteUserById(userIdToDelete);
+  console.log('Service result:', result);
+
+  sendResponse(res, {
+    code: StatusCodes.OK,
+    message: 'User deleted successfully',
+    data: result,
+  });
+});
 
 const deleteUserWithPassword = catchAsync(async (req: Request, res: Response) => {
   console.log('=== DELETE ACCOUNT REQUEST ===');
-  console.log('Full req.user object:', req.user);
-  console.log('req.user keys:', Object.keys(req.user || {}));
   
-  // Try all possible user ID properties
-  const userId = req.user?.userId || req.user?.id || req.user?._id || req.user?.userid;
-  
-  console.log('Trying to extract userId:');
-  console.log('req.user.userId:', req.user?.userId);
-  console.log('req.user.id:', req.user?.id);
-  console.log('req.user._id:', req.user?._id);
+  const userId = getUserIdWithFallback(req);
   console.log('Final extracted userId:', userId);
   
-  if (!userId) {
-    console.log('❌ No user ID found in req.user');
-    throw new ApiError(401, 'User not authenticated');
-  }
-
   const { password } = req.body;
   console.log('Password from body:', password);
 
   if (!password) {
-    throw new ApiError(400, 'Password is required to delete account');
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is required to delete account');
   }
 
   const result = await UserService.deleteUserWithPassword(userId, password);
 
   sendResponse(res, {
-    statusCode: 200,
-    success: true,
+    code: StatusCodes.OK,
     message: 'Account deleted successfully',
     data: result,
   });
 });
+
 const createUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const userData = req.body;
-  console.log("userData controller ===========>>>>>>>>>" ,userData);
+  console.log("userData controller ===========>>>>>>>>>", userData);
 
-  const files = req.files as {
-    profileImage?: { filename: string }[];
-    CV?: { filename: string }[];
-  };
+  const files = req.files as ProfileFiles;
 
   // Handle file uploads and assign paths to userData
   if (files?.profileImage && files.profileImage[0]?.filename) {
@@ -81,7 +131,7 @@ const createUser = catchAsync(async (req: Request, res: Response, next: NextFunc
   const lastUser = await User.findOne().sort({ userId: -1 });
   let newUserId = '0001'; 
 
-  if (lastUser) {
+  if (lastUser && lastUser.userId) {
     const lastUserId = parseInt(lastUser.userId, 10);
     newUserId = (lastUserId + 1).toString().padStart(4, '0');
   }
@@ -105,19 +155,17 @@ const createUser = catchAsync(async (req: Request, res: Response, next: NextFunc
     data: result,
   });
 });
+
 const createAdmin = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const userData = req.body;
-  console.log("userData controller ===========>>>>>>>>>" ,userData);
+  console.log("userData controller ===========>>>>>>>>>", userData);
 
-  const files = req.files as {
-    profileImage?: { filename: string }[];
-    CV?: { filename: string }[];
-  };
+  const files = req.files as ProfileFiles;
 
-  userData.address = "N/A"
-  userData.Designation = "N/A"
-  userData.ConfirmPassword = userData.password
-  userData.role = "admin"
+  userData.address = "N/A";
+  userData.Designation = "N/A";
+  userData.ConfirmPassword = userData.password;
+  userData.role = "admin";
 
   // Handle file uploads and assign paths to userData
   if (files?.profileImage && files.profileImage[0]?.filename) {
@@ -130,19 +178,17 @@ const createAdmin = catchAsync(async (req: Request, res: Response, next: NextFun
   // Check if the user already exists by email
   const isUserExist = await User.findOne({ email: userData?.email });
   if (isUserExist) {
-
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
-  
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
   }
 
- // Generate UserId (Auto-increment 5-digit number)
-const lastUser = await User.findOne().sort({ userId: -1 });
-let newUserId = '00001'; // Default starting value
+  // Generate UserId (Auto-increment 5-digit number)
+  const lastUser = await User.findOne().sort({ userId: -1 });
+  let newUserId = '00001'; // Default starting value
 
-if (lastUser) {
-  const lastUserId = parseInt(lastUser.userId, 10);
-  newUserId = (lastUserId + 1).toString().padStart(5, '0');
-}
+  if (lastUser && lastUser.userId) {
+    const lastUserId = parseInt(lastUser.userId, 10);
+    newUserId = (lastUserId + 1).toString().padStart(5, '0');
+  }
 
   userData.userId = newUserId;
 
@@ -163,18 +209,16 @@ if (lastUser) {
     data: result,
   });
 });
+
 const createManualUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const userData = req.body;
-  console.log("userData controller ===========>>>>>>>>>" ,userData);
+  console.log("userData controller ===========>>>>>>>>>", userData);
 
-  const files = req.files as {
-    profileImage?: { filename: string }[];
-    CV?: { filename: string }[];
-  };
+  const files = req.files as ProfileFiles;
 
-  userData.address = "N/A"
-  userData.ConfirmPassword = userData.password
-  userData.role = "user"
+  userData.address = "N/A";
+  userData.ConfirmPassword = userData.password;
+  userData.role = "user";
 
   // Handle file uploads and assign paths to userData
   if (files?.profileImage && files.profileImage[0]?.filename) {
@@ -187,16 +231,14 @@ const createManualUser = catchAsync(async (req: Request, res: Response, next: Ne
   // Check if the user already exists by email
   const isUserExist = await User.findOne({ email: userData?.email });
   if (isUserExist) {
-
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
-  
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
   }
 
   // Generate UserId (Auto-increment 4-digit number)
   const lastUser = await User.findOne().sort({ userId: -1 });
   let newUserId = '0001'; 
 
-  if (lastUser) {
+  if (lastUser && lastUser.userId) {
     const lastUserId = parseInt(lastUser.userId, 10);
     newUserId = (lastUserId + 1).toString().padStart(4, '0');
   }
@@ -220,19 +262,17 @@ const createManualUser = catchAsync(async (req: Request, res: Response, next: Ne
     data: result,
   });
 });
+
 const createAnalyst = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const userData = req.body;
-  console.log("userData controller ===========>>>>>>>>>" ,userData);
+  console.log("userData controller ===========>>>>>>>>>", userData);
 
-  const files = req.files as {
-    profileImage?: { filename: string }[];
-    CV?: { filename: string }[];
-  };
+  const files = req.files as ProfileFiles;
 
-  userData.address = "N/A"
-  userData.Designation = "N/A"
-  userData.ConfirmPassword = userData.password
-  userData.role = "analyst"
+  userData.address = "N/A";
+  userData.Designation = "N/A";
+  userData.ConfirmPassword = userData.password;
+  userData.role = "analyst";
 
   // Handle file uploads and assign paths to userData
   if (files?.profileImage && files.profileImage[0]?.filename) {
@@ -245,16 +285,14 @@ const createAnalyst = catchAsync(async (req: Request, res: Response, next: NextF
   // Check if the user already exists by email
   const isUserExist = await User.findOne({ email: userData?.email });
   if (isUserExist) {
-
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
-  
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'User already exists');
   }
 
   // Generate UserId (Auto-increment 4-digit number)
   const lastUser = await User.findOne().sort({ userId: -1 });
   let newUserId = '0001'; 
 
-  if (lastUser) {
+  if (lastUser && lastUser.userId) {
     const lastUserId = parseInt(lastUser.userId, 10);
     newUserId = (lastUserId + 1).toString().padStart(4, '0');
   }
@@ -279,21 +317,22 @@ const createAnalyst = catchAsync(async (req: Request, res: Response, next: NextF
   });
 });
 
-
-
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
-  const {page, limit, role} = req.query
-  console.log("===========>>" ,typeof(page), typeof(limit), role)
+  const { page, limit, role } = req.query;
+  console.log("===========>>", typeof(page), typeof(limit), role);
+  
   // Default to page 1 and limit 10 if not provided or invalid
-    const pageNumber = parseInt(page as string) || 1;
-    const limitNumber = parseInt(limit as string) || 10;
-    const userRole = role as string
-    let users
+  const pageNumber = parseInt(page as string) || 1;
+  const limitNumber = parseInt(limit as string) || 10;
+  const userRole = role as string;
+  
+  let users;
   if (role) {
-     users = await UserService.getAllUsersByRoleFromDB(pageNumber, limitNumber, userRole);
+    users = await UserService.getAllUsersByRoleFromDB(pageNumber, limitNumber, userRole);
   } else {
     users = await UserService.getAllUsersFromDB(pageNumber, limitNumber);
   }
+  
   return sendResponse(res, {
     code: StatusCodes.OK,
     message: 'Users retrieved successfully.',
@@ -312,7 +351,9 @@ const getSingleUserFromDB = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMyProfile = catchAsync(async (req: Request, res: Response) => {
-  const result = await UserService.getMyProfile(req.user.id);
+  const userId = getUserId(req);
+  
+  const result = await UserService.getMyProfile(userId);
   return sendResponse(res, {
     code: StatusCodes.OK,
     message: 'Profile data retrieved successfully.',
@@ -321,19 +362,16 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const fillUpUserDetails = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user.id;
+  const userId = getUserId(req);
 
-  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  if (
-    files &&
-    'drivingLicenseFront' in files &&
-    'drivingLicenseBack' in files
-  ) {
-    req.body.drivingLicenseFront =
-      '/uploads/users/driving_licenses' + files.drivingLicenseFront[0].filename;
-    req.body.drivingLicenseBack =
-      '/uploads/users/driving_licenses' + files.drivingLicenseBack[0].filename;
+  const files = req.files as ProfileFiles;
+  if (files?.drivingLicenseFront && files.drivingLicenseFront[0]?.filename) {
+    req.body.drivingLicenseFront = `/uploads/users/driving_licenses/${files.drivingLicenseFront[0].filename}`;
   }
+  if (files?.drivingLicenseBack && files.drivingLicenseBack[0]?.filename) {
+    req.body.drivingLicenseBack = `/uploads/users/driving_licenses/${files.drivingLicenseBack[0].filename}`;
+  }
+
   // Call your service with the userId and userData
   const result = await UserService.fillUpUserDetails(userId, req.body);
   return sendResponse(res, {
@@ -344,18 +382,18 @@ const fillUpUserDetails = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user.id;
+  const userId = getUserId(req);
+  
   const payload = req.body;
-  const files = req.files as {
-      profileImage?: { filename: string }[];
-      CV?: { filename: string }[];
-    };
-    if (files?.profileImage && files.profileImage[0]?.filename) {
-      payload.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
-    }
-    if (files?.CV && files.CV[0]?.filename) {
-      payload.CV = `/uploads/users/${files.CV[0].filename}`;
-    }
+  const files = req.files as ProfileFiles;
+  
+  if (files?.profileImage && files.profileImage[0]?.filename) {
+    payload.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
+  }
+  if (files?.CV && files.CV[0]?.filename) {
+    payload.CV = `/uploads/users/${files.CV[0].filename}`;
+  }
+  
   const result = await UserService.updateMyProfile(userId, payload);
   return sendResponse(res, {
     code: StatusCodes.OK,
@@ -363,8 +401,10 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const updateUserImage = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user.id;
+  const userId = getUserId(req);
+  
   if (req.file) {
     req.body.image = '/uploads/users/' + req.file.filename;
   }
@@ -386,8 +426,10 @@ const changeUserStatus = catchAsync(async (req: Request, res: Response) => {
     data: {},
   });
 });
+
 const deleteMyProfile = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user.id;
+  const userId = getUserId(req);
+  
   await UserService.deleteMyProfile(userId);
   return sendResponse(res, {
     code: StatusCodes.OK,
@@ -396,35 +438,90 @@ const deleteMyProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateUserById = catchAsync(async (req: Request, res: Response) => {
+  console.log('=== UPDATE USER BY ID REQUEST ===');
+  
+  const userId = req.params.id;
+  console.log('User ID to update:', userId);
+  
+  if (!userId) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'User ID is required');
+  }
 
-const getSingleUserById = catchAsync(async (req , res) => {
-  const {id} = req.params;
+  // Validate user ID format (if using MongoDB)
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid user ID format');
+  }
+
+  const payload = req.body;
+  const files = req.files as ProfileFiles;
+  
+  console.log('Update payload:', payload);
+  console.log('Files received:', files);
+
+  // Handle file uploads and assign paths to payload
+  if (files?.profileImage && files.profileImage[0]?.filename) {
+    payload.profileImage = `/uploads/users/${files.profileImage[0].filename}`;
+    console.log('Profile image updated:', payload.profileImage);
+  }
+  if (files?.CV && files.CV[0]?.filename) {
+    payload.CV = `/uploads/users/${files.CV[0].filename}`;
+    console.log('CV updated:', payload.CV);
+  }
+
+  // Check if user exists
+  const existingUser = await User.findById(userId);
+  if (!existingUser) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+  }
+
+  // Prevent updating certain sensitive fields
+  const restrictedFields = ['password', 'ConfirmPassword', 'role', 'authType', 'socialId', 'isDeleted', 'isBlocked'];
+  restrictedFields.forEach(field => {
+    if (payload[field]) {
+      console.warn(`⚠️ Attempt to update restricted field: ${field}`);
+      delete payload[field];
+    }
+  });
+
+  const result = await UserService.updateUserById(userId, payload);
+  console.log('User updated successfully:', result.email);
+
+  sendResponse(res, {
+    code: StatusCodes.OK,
+    message: 'User updated successfully',
+    data: result,
+  });
+});
+
+const getSingleUserById = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
   const result = await UserService.getSingleUserFromDB(id);
   if (!result) {
     return sendResponse(res, {
-      code: StatusCodes.OK,
-      message: 'User did not get .',
+      code: StatusCodes.NOT_FOUND,
+      message: 'User not found.',
     });
   }
   return sendResponse(res, {
     code: StatusCodes.OK,
-    message: 'User get successfully.',
+    message: 'User retrieved successfully.',
     data: result,
   });
-})
+});
 
-const searchByUid = catchAsync(async (req : Request, res : Response, next : NextFunction) => {
-  const {Uid} = req.params;
-  const result = await UserService.searchByUidFromDB(Uid)
+const searchByUid = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const { Uid } = req.params;
+  const result = await UserService.searchByUidFromDB(Uid);
   if (!result) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "No User Found With THis Id");
+    throw new ApiError(StatusCodes.BAD_REQUEST, "No User Found With This Id");
   }
   sendResponse(res, {
-    code : StatusCodes.OK,
-    message : "User Found Successfully!",
-    data : result
-  })
-})
+    code: StatusCodes.OK,
+    message: "User Found Successfully!",
+    data: result
+  });
+});
 
 export const UserController = {
   createUser,
@@ -436,9 +533,12 @@ export const UserController = {
   fillUpUserDetails,
   deleteMyProfile,
   changeUserStatus,
-  getSingleUserById,deleteUserWithPassword, 
+  getSingleUserById,
+  deleteUserWithPassword, 
   createAdmin,
-  createManualUser,
-  createAnalyst,
+  createManualUser, 
+  updateUserById,
+  createAnalyst, 
+  deleteUserById,
   searchByUid
 };

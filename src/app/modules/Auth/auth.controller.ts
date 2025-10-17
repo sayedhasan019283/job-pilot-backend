@@ -2,7 +2,8 @@ import { StatusCodes } from 'http-status-codes';
 import catchAsync from '../../../shared/catchAsync';
 import sendResponse from '../../../shared/sendResponse';
 import { AuthService } from './auth.service';
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
+import { Types } from 'mongoose';
 
 //login
 const loginIntoDB = catchAsync(async (req, res, next) => {
@@ -91,11 +92,28 @@ const resetPassword = catchAsync(async (req, res, next) => {
 });
 
 //change password
-const changePassword = catchAsync(async (req, res, next) => {
-  const id   = req?.user?.id;
-  console.log("========>>>> controller user from token" ,id)
+const changePassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  // Use type assertion to access the user property
+  const user = (req as any).user as { id: string };
+  const id = user?.id;
+  
+  console.log("========>>>> controller user from token", id);
+  
+  // Add proper validation
+  if (!id) {
+    return sendResponse(res, {
+      code: StatusCodes.UNAUTHORIZED,
+      message: 'User not authenticated',
+      data: null,
+    });
+  }
+
   const changePasswordData = req.body;
-  const result = await AuthService.changePassword(id, changePasswordData);
+  
+  // Convert string ID to ObjectId
+  const objectId = new Types.ObjectId(id);
+  const result = await AuthService.changePassword(objectId, changePasswordData);
+  
   sendResponse(res, {
     code: StatusCodes.OK,
     message: 'Change Password Successful',

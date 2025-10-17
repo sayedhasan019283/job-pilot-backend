@@ -48,6 +48,14 @@ const loginIntoDB = async (payload: ILogin) => {
 
   validateUserStatus(user);
   
+  // Check if password exists and is a string
+  if (!user.password || typeof user.password !== 'string') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Invalid user account configuration.'
+    );
+  }
+
   const isPasswordValid = await bcrypt.compare(payload.password, user.password);
   if (!isPasswordValid) {
     throw new ApiError(
@@ -255,7 +263,7 @@ const resetPassword = async (payload: IResetPassword) => {
   validateUserStatus(user);
 
   user.password = newPassword;
-  user.ConfirmPassword = ConfirmPassword
+  user.ConfirmPassword = ConfirmPassword;
   await user.save();
 
   return user;
@@ -278,24 +286,36 @@ const changePassword = async (userId: Types.ObjectId, payload: IChangePassword) 
 
   console.log("============>>>>" , user)
   validateUserStatus(user);
+  
+  // Check if current password exists and is a string
+  if (!user.password || typeof user.password !== 'string') {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Invalid user account configuration.'
+    );
+  }
+
   if (payload.currentPassword === payload.newPassword) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       'Your new password cannot be the same as the current password. Please choose a different password.'
     );
   }
+
   const isCurrentPasswordValid = await bcrypt.compare(
     payload.currentPassword,
     user.password
   );
+  
   if (!isCurrentPasswordValid) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       'Your current password is incorrect.'
     );
   }
+  
   user.password = payload.newPassword;
-  user.ConfirmPassword = payload.currentPassword 
+  user.ConfirmPassword = payload.newPassword; // Should be newPassword, not currentPassword
   await user.save();
 
   return user;

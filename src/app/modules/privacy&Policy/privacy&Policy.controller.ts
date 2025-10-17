@@ -46,7 +46,9 @@ const updatePrivacyPolicy = catchAsync(async (req: Request, res: Response, next:
 
 const readPrivacyPolicy = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const result = await privacyPolicyService.readPrivacyPolicyFromDB();
-    if (!result || result.length === 0) {
+    
+    // Check if result exists (not null/undefined) instead of checking length
+    if (!result) {
         throw new ApiError(StatusCodes.NOT_FOUND, "No Privacy Policy Data Found");
     }
     

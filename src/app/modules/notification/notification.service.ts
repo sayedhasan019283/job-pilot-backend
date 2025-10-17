@@ -3,6 +3,7 @@ import { NotificationModel } from "./notification.model";
 import { TNotificationType } from "./notification.interface";
 import { User } from "../user/user.model";
 import mongoose from 'mongoose';
+import admin from "../../../config/firebase";
 
 // Enhanced send notification with preference checking
 const sendRealTimeNotification = async (
@@ -53,7 +54,7 @@ const sendRealTimeNotification = async (
   }
 };
 
-// Enhanced push notification function
+// Enhanced push notification function with proper Firebase typing
 const sendPushNotification = async (userId: string, text: string, title: string, data: any = {}) => {
   try {
     const user = await User.findById(userId);
@@ -68,7 +69,8 @@ const sendPushNotification = async (userId: string, text: string, title: string,
       return null;
     }
 
-    const message = {
+    // Properly typed Firebase message object
+    const message: admin.messaging.Message = {
       notification: {
         title: title,
         body: text,
@@ -81,7 +83,7 @@ const sendPushNotification = async (userId: string, text: string, title: string,
       },
       token: user.fcmToken,
       android: {
-        priority: 'high',
+        priority: 'high' as const, // Use const assertion for literal type
       },
       apns: {
         payload: {
@@ -109,6 +111,130 @@ const sendPushNotification = async (userId: string, text: string, title: string,
       console.log(`Removed invalid FCM token for user ${userId}`);
     }
     
+    return null;
+  }
+};
+
+// Alternative version using more specific typing for different platforms
+const sendPushNotificationAlternative = async (userId: string, text: string, title: string, data: any = {}) => {
+  try {
+    const user = await User.findById(userId);
+    
+    if (!user || !user.fcmToken) {
+      return null;
+    }
+
+    // More explicit typing with platform-specific configurations
+    const message: admin.messaging.Message = {
+      notification: {
+        title,
+        body: text,
+      },
+      data: {
+        ...data,
+        type: data.type || 'info',
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        userId: userId.toString(),
+      },
+      token: user.fcmToken,
+      android: {
+        priority: 'high', // This should now work with proper Firebase types
+        notification: {
+          sound: 'default',
+          channelId: 'default',
+        },
+      },
+      apns: {
+        headers: {
+          'apns-priority': '10',
+        },
+        payload: {
+          aps: {
+            alert: {
+              title,
+              body: text,
+            },
+            sound: 'default',
+            badge: 1,
+          },
+        },
+      },
+      webpush: {
+        headers: {
+          Urgency: 'high',
+        },
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log('Push notification sent successfully:', response);
+    return response;
+  } catch (error: any) {
+    console.error('Error sending push notification:', error);
+    
+    // Handle invalid token errors
+    if (error.code === 'messaging/invalid-registration-token' || 
+        error.code === 'messaging/registration-token-not-registered') {
+      await User.findByIdAndUpdate(userId, { 
+        $unset: { fcmToken: 1 } 
+      });
+      console.log(`Removed invalid FCM token for user ${userId}`);
+    }
+    
+    return null;
+  }
+};
+
+// Multicast version for sending to multiple users
+const sendPushNotificationToMultiple = async (userIds: string[], text: string, title: string, data: any = {}) => {
+  try {
+    const users = await User.find({ _id: { $in: userIds } }).select('fcmToken');
+    const validTokens = users
+      .map(user => user.fcmToken)
+      .filter((token): token is string => !!token);
+
+    if (validTokens.length === 0) {
+      console.log('No valid FCM tokens found for the specified users');
+      return null;
+    }
+
+    const message: admin.messaging.MulticastMessage = {
+      notification: {
+        title,
+        body: text,
+      },
+      data: {
+        ...data,
+        type: data.type || 'info',
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+      },
+      tokens: validTokens,
+      android: {
+        priority: 'high',
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+          },
+        },
+      },
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+    console.log(`Push notification sent to ${response.successCount} devices successfully`);
+    
+    // Handle failures
+    response.responses.forEach((resp, idx) => {
+      if (!resp.success) {
+        console.error(`Failed to send to token ${validTokens[idx]}:`, resp.error);
+      }
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error sending multicast push notification:', error);
     return null;
   }
 };
@@ -241,6 +367,7 @@ export const notificationService = {
   getNotificationUnderUser,
   sendRealTimeNotification,
   sendPushNotification,
+  sendPushNotificationToMultiple,
   markAsRead,
   markAllAsRead,
   getUnreadCount,
